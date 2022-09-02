@@ -8,8 +8,11 @@ struct DirEntry
     uint32_t offset;
     uint16_t size;
     uint16_t unused;
-public:
     char name[24];
+
+    // vars
+    bool selected = false;
+    bool rename = false;
 };
 
 class IMGArchive

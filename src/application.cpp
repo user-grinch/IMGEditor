@@ -12,6 +12,11 @@ Ui::Application::~Application()
     Renderer::Shutdown();
 }
 
+void Ui::Application::SetPopup(std::function<void()> Func)
+{
+    Info.PopupFunc = Func;
+}
+
 void Ui::Application::Run()
 {
     bool exit = false;

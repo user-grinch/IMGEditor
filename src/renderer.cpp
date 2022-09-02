@@ -10,7 +10,7 @@ static void ApplyCustomTheme()
     
     style->AntiAliasedLines = true;
     style->FrameBorderSize = 1.0f;
-    style->WindowBorderSize = 0.0f;
+    style->WindowBorderSize = 0.00f;
     style->PopupBorderSize = 0.50f;
     style->ScrollbarRounding = 0.0f;
 
@@ -24,9 +24,9 @@ static void ApplyCustomTheme()
     colors[ImGuiCol_FrameBg]                = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
     colors[ImGuiCol_FrameBgHovered]         = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
     colors[ImGuiCol_FrameBgActive]          = ImVec4(0.40f, 0.40f, 0.40f, 1.00f);
-    colors[ImGuiCol_TitleBg]                = colors[ImGuiCol_Button];
-    colors[ImGuiCol_TitleBgActive]          = colors[ImGuiCol_ButtonHovered];
-    colors[ImGuiCol_TitleBgCollapsed]       = colors[ImGuiCol_ButtonActive];
+    colors[ImGuiCol_TitleBg]                = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
+    colors[ImGuiCol_TitleBgActive]          = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
+    colors[ImGuiCol_TitleBgCollapsed]       = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
     colors[ImGuiCol_MenuBarBg]              = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
     colors[ImGuiCol_ScrollbarBg]            = ImVec4(0.98f, 0.98f, 0.98f, 0.0f);
     colors[ImGuiCol_ScrollbarGrab]          = ImVec4(0.75f, 0.75f, 0.75f, 1.00f);
@@ -38,7 +38,7 @@ static void ApplyCustomTheme()
     colors[ImGuiCol_Button]                 = ImVec4(0.94f, 0.94f, 0.94f, 1.00f);
     colors[ImGuiCol_ButtonHovered]          = ImVec4(0.78f, 0.87f, 0.98f, 1.00f);
     colors[ImGuiCol_ButtonActive]           = ImVec4(0.71f, 0.81f, 1.00f, 1.00f);
-    colors[ImGuiCol_Header]                 = ImVec4(0.82f, 0.90f, 0.98f, 1.00f);
+    colors[ImGuiCol_Header]                 = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
     colors[ImGuiCol_HeaderHovered]          = ImVec4(0.78f, 0.87f, 0.98f, 1.00f);
     colors[ImGuiCol_HeaderActive]           = ImVec4(0.73f, 0.82f, 0.98f, 1.00f);
     colors[ImGuiCol_Separator]              = ImVec4(0.39f, 0.39f, 0.39f, 0.62f);
@@ -189,6 +189,32 @@ void Ui::Renderer::DrawLayer(Specification &Spec)
         {
             Spec.LayerFunc();
             ImGui::End();
+        }
+
+
+
+        if (Spec.PopupFunc)
+        {
+            static ImVec2 sz;
+            float posX = (width - sz.x)/2;
+            float posY = (height - sz.y)/4;
+            ImGui::SetNextWindowPos(ImVec2(posX, posY), ImGuiCond_Always);
+            flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove;
+            bool state = true;
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.5f);
+            ImGui::SetNextWindowFocus();
+            if (ImGui::Begin("##PopupWindow", &state, flags))
+            {
+                Spec.PopupFunc();
+                sz = ImGui::GetWindowSize();
+                ImGui::End();
+            }
+            ImGui::PopStyleVar();
+
+            if (!state)
+            {
+                Spec.PopupFunc = nullptr;
+            }
         }
     }
     ImGui::EndFrame();

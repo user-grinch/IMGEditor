@@ -15,5 +15,7 @@ namespace Ui
         
         // Start the application loop
         void Run();
+
+        void SetPopup(std::function<void()> Func);
     };
 }
