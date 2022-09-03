@@ -257,6 +257,8 @@ void Ui::Renderer::Init(const Specification &Spec)
 
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
+    io.IniFilename = nullptr;
+    io.LogFilename = nullptr;
     io.FontDefault = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\segoeui.ttf", 17.0f);
     io.Fonts->Build();
 
