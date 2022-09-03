@@ -12,6 +12,8 @@ static void ApplyCustomTheme()
     style->WindowBorderSize = 0.00f;
     style->PopupBorderSize = 0.50f;
     style->ScrollbarRounding = 0.0f;
+    style->TabRounding = 0.0f;
+    style->TabBorderSize = 0.00f;
 
     colors[ImGuiCol_Text]                   = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
     colors[ImGuiCol_TextDisabled]           = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
@@ -34,7 +36,7 @@ static void ApplyCustomTheme()
     colors[ImGuiCol_CheckMark]              = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
     colors[ImGuiCol_SliderGrab]             = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
     colors[ImGuiCol_SliderGrabActive]       = ImVec4(0.40f, 0.40f, 0.40f, 1.00f);
-    colors[ImGuiCol_Button]                 = ImVec4(0.94f, 0.94f, 0.94f, 1.00f);
+    colors[ImGuiCol_Button]                 = ImVec4(0.97f, 0.97f, 0.97f, 1.00f);
     colors[ImGuiCol_ButtonHovered]          = ImVec4(0.78f, 0.87f, 0.98f, 1.00f);
     colors[ImGuiCol_ButtonActive]           = ImVec4(0.71f, 0.81f, 1.00f, 1.00f);
     colors[ImGuiCol_Header]                 = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
@@ -46,16 +48,16 @@ static void ApplyCustomTheme()
     colors[ImGuiCol_ResizeGrip]             = ImVec4(0.35f, 0.35f, 0.35f, 0.17f);
     colors[ImGuiCol_ResizeGripHovered]      = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
     colors[ImGuiCol_ResizeGripActive]       = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
-    colors[ImGuiCol_Tab]                    = ImVec4(0.75f, 0.75f, 0.75f, 1.00f);
-    colors[ImGuiCol_TabHovered]             = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
-    colors[ImGuiCol_TabActive]              = ImVec4(0.40f, 0.40f, 0.40f, 1.00f);
-    // colors[ImGuiCol_TabUnfocused]           = ImLerp(colors[ImGuiCol_Tab],          colors[ImGuiCol_TitleBg], 0.80f);
-    // colors[ImGuiCol_TabUnfocusedActive]     = ImLerp(colors[ImGuiCol_TabActive],    colors[ImGuiCol_TitleBg], 0.40f);
+    colors[ImGuiCol_Tab]                    = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+    colors[ImGuiCol_TabHovered]             = ImVec4(0.68f, 0.78f, 0.98f, 1.00f);
+    colors[ImGuiCol_TabActive]              = ImVec4(0.71f, 0.81f, 1.00f, 1.00f);
+    colors[ImGuiCol_TabUnfocused]           = colors[ImGuiCol_Tab];
+    colors[ImGuiCol_TabUnfocusedActive]     = colors[ImGuiCol_TabActive];
     colors[ImGuiCol_PlotLines]              = ImVec4(0.39f, 0.39f, 0.39f, 1.00f);
     colors[ImGuiCol_PlotLinesHovered]       = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
     colors[ImGuiCol_PlotHistogram]          = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
     colors[ImGuiCol_PlotHistogramHovered]   = ImVec4(1.00f, 0.45f, 0.00f, 1.00f);
-    colors[ImGuiCol_TableHeaderBg]          = colors[ImGuiCol_Button];
+    colors[ImGuiCol_TableHeaderBg]          = ImVec4(0.94f, 0.94f, 0.94f, 1.00f);
     colors[ImGuiCol_TableBorderStrong]      = ImVec4(0.57f, 0.57f, 0.64f, 1.00f);   // Prefer using Alpha=1.0 here
     colors[ImGuiCol_TableBorderLight]       = ImVec4(0.68f, 0.68f, 0.74f, 1.00f);   // Prefer using Alpha=1.0 here
     colors[ImGuiCol_TableRowBg]             = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);

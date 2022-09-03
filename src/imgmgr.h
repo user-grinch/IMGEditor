@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <filesystem>
 
 // Add support for 3 & VC later
 struct DirEntry
@@ -18,7 +19,7 @@ struct DirEntry
 class IMGArchive
 {
 public:
-    std::string Path;
+    std::filesystem::path Path;
     std::vector<DirEntry> Entries;
     uint32_t TotalEntries;
 
