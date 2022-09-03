@@ -1,7 +1,6 @@
 #include "renderer.h"
 #include "imgui/imgui_impl_dx9.h"
 #include "imgui/imgui_impl_win32.h"
-#include <tchar.h>
 
 static void ApplyCustomTheme()
 {
@@ -191,8 +190,6 @@ void Ui::Renderer::DrawLayer(Specification &Spec)
             ImGui::End();
         }
 
-
-
         if (Spec.PopupFunc)
         {
             static ImVec2 sz;
@@ -241,7 +238,7 @@ void Ui::Renderer::DrawLayer(Specification &Spec)
 void Ui::Renderer::Init(const Specification &Spec)
 {
     ImGui_ImplWin32_EnableDpiAwareness();
-    wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("ImGui Example"), NULL };
+    wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, Spec.Name.c_str(), NULL };
     RegisterClassEx(&wc);
     hwnd = CreateWindow(wc.lpszClassName,  Spec.Name.c_str(), WS_OVERLAPPEDWINDOW, Spec.Pos.x, Spec.Pos.y, Spec.Size.x, Spec.Size.y, 
                         NULL, NULL, wc.hInstance, NULL);

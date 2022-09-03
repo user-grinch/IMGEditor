@@ -1,5 +1,5 @@
+#include "pch.h"
 #include "imgmgr.h"
-#include <filesystem>
 
 IMGArchive::IMGArchive(std::string Path, bool CreateNew)
 {

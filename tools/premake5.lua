@@ -7,28 +7,47 @@ workspace "IMGEditor"
     platforms {
         "Win64"
     }
+
     language "C++"
-    cppdialect "C++latest"
+    cppdialect "C++20"
     staticruntime "On"
     characterset "ASCII"
     location "../build"
     targetdir "../build/bin"
-    kind "ConsoleApp"
-
-    files { 
-        "../include/**", 
-        "../src/**"
-    }
+    kind "WindowedApp"
     
     includedirs {
         "../include/"
     }
 
+project "depend"
+    kind "StaticLib"
+
+    files { 
+        "../include/**"
+    }
+
+    filter "configurations:Debug"
+        defines { "DEBUG" }
+        symbols "On"
+
+    filter "configurations:Release"
+        defines { "NDEBUG" }
+        optimize "On"
+
 project "IMGEditorApp"
     architecture "x64"
     links { 
-        "d3d9"
+        "d3d9",
+        "depend"
     }
+
+    files { 
+        "../src/**"
+    }
+
+    pchheader "pch.h"
+    pchsource "../src/pch.cpp"
 
     filter "configurations:Debug"
         symbols "On"
