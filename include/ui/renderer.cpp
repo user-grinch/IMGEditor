@@ -8,12 +8,12 @@ static void ApplyCustomTheme()
     ImVec4* colors = style->Colors;
     
     style->AntiAliasedLines = true;
-    style->FrameBorderSize = 1.0f;
+    style->FrameBorderSize = 0.50f;
     style->WindowBorderSize = 0.00f;
     style->PopupBorderSize = 0.50f;
     style->ScrollbarRounding = 0.0f;
     style->TabRounding = 0.0f;
-    style->TabBorderSize = 0.00f;
+    style->TabBorderSize = 0.50f;
 
     colors[ImGuiCol_Text]                   = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
     colors[ImGuiCol_TextDisabled]           = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);

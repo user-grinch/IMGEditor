@@ -13,4 +13,6 @@ public:
     // ImGui::TextFilter with hint support
     static void Filter(const char* label, ImGuiTextFilter& filter, const char* hint);
     
+    // Text aligned to the center of the window
+    static void TextCentered(const std::string& text);
 };

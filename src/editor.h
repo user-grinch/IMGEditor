@@ -5,13 +5,14 @@
 class Editor
 {
 private:
-    static inline std::vector<IMGArchive> Archives {  IMGArchive("Untitled.img", true) };
+    static inline std::vector<IMGArchive> Archives {  IMGArchive("Untitled", true) };
+    static inline IMGArchive* pSelectedArchive;
+    static inline EntryInfo *pSelectedEntry = nullptr;
     static inline Ui::Application *pApp = nullptr;
-    static inline DirEntry *pContextEntry = nullptr;
-    static inline ImGuiTextFilter filter;
 
     // Popups
     static void AboutPopUp();
+    static void WelcomePopup();
 
     static void ProcessContextMenu();
     static void ProcessMenuBar();

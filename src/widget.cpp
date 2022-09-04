@@ -47,3 +47,12 @@ ImVec2 Widget::CalcSize(short count, bool spacing, bool column)
 
     return ImVec2(x, ImGui::GetFrameHeight());
 }
+
+void Widget::TextCentered(const std::string& text)
+{
+    ImVec2 size = ImGui::CalcTextSize(text.c_str());
+    ImGui::NewLine();
+    float width = ImGui::GetWindowContentRegionWidth() - size.x;
+    ImGui::SameLine(width/2);
+    ImGui::Text(text.c_str());
+}
