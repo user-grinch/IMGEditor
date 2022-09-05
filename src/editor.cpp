@@ -58,13 +58,27 @@ void Editor::ProcessMenuBar()
 {
     if (ImGui::BeginMenu("File"))
     {
-        ImGui::MenuItem("New");
+        if (ImGui::MenuItem("New"))
+        {
+            
+        }
         if (ImGui::MenuItem("Open..."))
         {
             std::string path = WinDialogs::OpenFile();
-            if (path != "")
+
+            if (path != "" && IMGArchive::IsSupported(path))
             {
-                Archives.push_back(std::move(IMGArchive(std::move(path))));
+                ArchiveList.push_back(std::move(IMGArchive(std::move(path))));
+            }
+            else
+            {
+                pApp->SetPopup([]()
+                {
+                    ImGui::Text("IMG format not supported!");
+                    ImGui::Spacing();
+                    ImGui::Text("IMG Editor only supports below games,");
+                    ImGui::Text("1. GTA SA");
+                });
             }
         }
         ImGui::MenuItem("Save");
@@ -97,7 +111,7 @@ void Editor::ProcessMenuBar()
 
 void Editor::ProcessContextMenu()
 {
-    if (!pSelectedEntry)
+    if (!pContextEntry)
     {
         return;
     }
@@ -111,32 +125,32 @@ void Editor::ProcessContextMenu()
     {
         if (ImGui::MenuItem("Delete"))
         {
-            pSelectedEntry = nullptr;
+            pContextEntry = nullptr;
         }
 
         if (ImGui::MenuItem("Export"))
         {
-            std::string path = WinDialogs::SaveFile(pSelectedEntry->name);
-            pSelectedArchive->ExportEntry(pSelectedEntry, path);
-            pSelectedEntry = nullptr;
+            std::string path = WinDialogs::SaveFile(pContextEntry->FileName);
+            pSelectedArchive->ExportEntry(pContextEntry, path);
+            pContextEntry = nullptr;
         }
 
         if (ImGui::MenuItem("Rename"))
         {
             if (pSelectedArchive)
             {
-                for (EntryInfo &e : pSelectedArchive->Entries)
+                for (EntryInfo &e : pSelectedArchive->EntryList)
                 {
-                    e.rename  = false;
+                    e.bRename  = false;
                 }
-                pSelectedEntry->rename = true;
+                pContextEntry->bRename = true;
             }
-            pSelectedEntry = nullptr;
+            pContextEntry = nullptr;
         }
 
         if (ImGui::MenuItem("Close"))
         {
-            pSelectedEntry = nullptr;
+            pContextEntry = nullptr;
         }
         ImGui::End();
     }
@@ -152,9 +166,9 @@ void Editor::ProcessWindow()
     pSelectedArchive = nullptr;
     if (ImGui::BeginTabBar("Archives", tabFlags))
     {
-        for (IMGArchive &archive : Archives)
+        for (IMGArchive &archive : ArchiveList)
         {  
-            if (ImGui::BeginTabItem(archive.FileName.c_str(), &archive.Open))
+            if (ImGui::BeginTabItem(archive.FileName.c_str(), &archive.bOpen))
             {
                 pSelectedArchive = &archive;
                 ImGui::Columns(2, NULL, false);
@@ -172,50 +186,62 @@ void Editor::ProcessWindow()
                     ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 100);
                     ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, 50);
                     ImGui::TableHeadersRow();
-                    for (EntryInfo &entry : archive.Entries)
+                    for (EntryInfo &entry : archive.EntryList)
                     {
-                        if (filter.PassFilter(entry.name))
+                        if (filter.PassFilter(entry.FileName))
                         {
                             ImGui::TableNextRow();
                             ImGui::TableNextColumn();
 
                             // Renaming system
-                            if (entry.rename)
+                            if (entry.bRename)
                             {
                                 ImGui::SetNextItemWidth(ImGui::GetColumnWidth());
-                                ImGui::InputText("##Rename", entry.name, sizeof(entry.name));
+                                ImGui::InputText("##Rename", entry.FileName, sizeof(entry.FileName));
                                 if (ImGui::IsKeyPressed(VK_RETURN))
                                 {
-                                    entry.rename = false;
+                                    entry.bRename = false;
                                 }
                             }
                             else
                             {
-                                if (ImGui::Selectable(entry.name))
+                                bool styleApplied = false;
+                                if (entry.bSelected)
+                                {
+                                    ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+                                    styleApplied = true;
+                                }
+                                if (ImGui::Selectable(entry.FileName, entry.bSelected))
                                 {
                                     // selection & renanme disable
-                                    for (EntryInfo &e : archive.Entries)
+                                    for (EntryInfo &e : archive.EntryList)
                                     {
                                         // allow multiselect when ctrl is pressed
                                         if (!(ImGui::IsKeyDown(VK_LCONTROL) || ImGui::IsKeyDown(VK_RCONTROL)))
                                         {
-                                            e.selected  = false;
+                                            e.bSelected  = false;
                                         }
-                                        e.rename  = false;
+                                        e.bRename  = false;
                                     }
 
-                                    entry.selected = true;
+                                    entry.bSelected = true;
+                                }
+
+                                if (styleApplied)
+                                {
+                                    ImGui::PopStyleColor();
+                                    styleApplied = false;
                                 }
                                 if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
                                 {
-                                    pSelectedEntry = pSelectedEntry ? nullptr : &entry;
+                                    pContextEntry = pContextEntry ? nullptr : &entry;
                                 }
                             }
 
                             ImGui::TableNextColumn();
-                            ImGui::Text(entry.fileType.c_str());
+                            ImGui::Text(entry.FileType.c_str());
                             ImGui::TableNextColumn();
-                            ImGui::Text("%d kb", entry.size*2);
+                            ImGui::Text("%d kb", entry.Size*2);
                         }
                     }
                     ProcessContextMenu();
@@ -228,7 +254,14 @@ void Editor::ProcessWindow()
 
                 ImGui::Button("Import", sz);
                 ImGui::SameLine();
-                ImGui::Button("Select all", sz);
+                if (ImGui::Button("Select all", sz))
+                {
+                    for (EntryInfo &e : pSelectedArchive->EntryList)
+                    {   
+                        e.bSelected = true;
+                    }
+                    pSelectedArchive->AddLogMessage("Selected all entries");
+                }
 
                 ImGui::Button("Export", sz);
                 ImGui::SameLine();
@@ -247,11 +280,12 @@ void Editor::ProcessWindow()
                     ImGui::TableSetupColumn("Logs");
                     ImGui::TableHeadersRow();
 
-                    for (int i = 0; i < 30; ++i)
+                    int size = static_cast<int>(pSelectedArchive->LogList.size()-1);
+                    for (int i = size; i >= 0; --i)
                     {
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
-                        ImGui::MenuItem(std::format("Test {}", i).c_str());
+                        ImGui::Text(pSelectedArchive->LogList[i].c_str());
                     }
                     ImGui::EndTable();
                 }
@@ -262,18 +296,18 @@ void Editor::ProcessWindow()
             }
 
             // Remove element if closed form editor
-            if (!archive.Open)
+            if (!archive.bOpen)
             {
-                Archives.erase (
+                ArchiveList.erase (
                     std::remove_if (
-                        Archives.begin(), 
-                        Archives.end(), 
+                        ArchiveList.begin(), 
+                        ArchiveList.end(), 
                         //here comes the C++11 lambda:
                         [&archive](IMGArchive const& obj) {
                             return obj.Path == archive.Path;
                         }
                     ), 
-                    Archives.end()
+                    ArchiveList.end()
                 );
             }
         }

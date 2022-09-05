@@ -3,32 +3,51 @@
 #include <vector>
 #include <filesystem>
 
-// Add support for 3 & VC later
+/*
+    Contains information about each entry in the archive
+    TODO: Add 3, VC & Fastman92's img support
+*/
 struct EntryInfo
 {
-    uint32_t offset;
-    uint16_t size;
+    // archive data
+    uint32_t Offset;        // in sectors (each sector is 2048 bytes)
+    uint16_t Size;          // in sectors (each sector is 2048 bytes)
     uint16_t unused;
-    char name[24];
+    char FileName[24];
 
-    // vars
-    bool selected = false;
-    bool rename = false;
-    std::string fileType = "Unknown";
+    // editor data
+    std::string FileType = "Unknown";
+    bool bSelected = false; // Is item currently selected
+    bool bRename = false;   // Is rename in progress
 };
 
+/*
+    Wrapper class for archives
+    Contains helper functions for processing the img
+*/
 class IMGArchive
 {
 public:
     std::string Path;
     std::string FileName;
-    std::vector<EntryInfo> Entries;
     uint32_t TotalEntries;
-    bool Open = true;
-    bool CreateNew;
+    std::vector<EntryInfo> EntryList;
+    std::vector<std::string> LogList;
+
+    bool bOpen = true;
+    bool bCreateNew;
 
     IMGArchive(std::string Path, bool CreateNew = false);
 
+    // Adds a new message to log
+    void AddLogMessage(std::string &&message);
+
+    // Export entity
     void ExportEntry(EntryInfo *pEntry, std::string filePath);
+
+    // Import entity
     void ImportEntry();
+
+    // Returns true if archive is supported(v2)
+    static bool IsSupported(const std::string &Path);
 };

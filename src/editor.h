@@ -5,9 +5,9 @@
 class Editor
 {
 private:
-    static inline std::vector<IMGArchive> Archives {  IMGArchive("Untitled", true) };
-    static inline IMGArchive* pSelectedArchive;
-    static inline EntryInfo *pSelectedEntry = nullptr;
+    static inline std::vector<IMGArchive> ArchiveList {  IMGArchive("Untitled", true) };
+    static inline IMGArchive* pSelectedArchive;         // pointer to the selected archive in editor
+    static inline EntryInfo *pContextEntry = nullptr;  // pointer to the selected archive entry in editor
     static inline Ui::Application *pApp = nullptr;
 
     // Popups
