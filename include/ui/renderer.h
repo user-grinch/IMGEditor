@@ -26,6 +26,13 @@ namespace Ui
         static void CleanupDevice();
         static inline LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+        // Returns true if windows is using light theme
+        static bool IsLightTheme();
+
+        // Apply ImGui themes
+        static void ApplyLightTheme();
+        static void ApplyDarkTheme();
+
     public:
         // Draws a ui layer on window
         static void DrawLayer(Specification &Spec);

@@ -19,6 +19,9 @@ private:
     static void ProcessWindow();
 public:
 
+    // Returns true if archive with the given name already exists
+    static bool DoesArchiveExist(const std::string &name);
+
     // Initializes & runs the IMGEditor
     static void Run();
 };

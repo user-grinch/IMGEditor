@@ -54,13 +54,42 @@ void Editor::WelcomePopup()
     ImGui::Text("Copyright Grinch_ 2022. All rights reserved.");
 }
 
+
+bool Editor::DoesArchiveExist(const std::string &name)
+{
+    for (IMGArchive &arc : ArchiveList)
+    {
+        if (std::string(arc.FileName) == name)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 void Editor::ProcessMenuBar()
 {
     if (ImGui::BeginMenu("File"))
     {
         if (ImGui::MenuItem("New"))
         {
-            
+            if (DoesArchiveExist("Untitled"))
+            {
+                // 50 is kinda overkill
+                for (size_t i = 2; i < 50; ++i)
+                {
+                    std::string name = std::format("Untitled({})", i);
+                    if (!DoesArchiveExist(name))
+                    {
+                        ArchiveList.push_back({name, true});
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                ArchiveList.push_back({"Untitled", true});
+            }
         }
         if (ImGui::MenuItem("Open..."))
         {
@@ -125,6 +154,13 @@ void Editor::ProcessContextMenu()
     {
         if (ImGui::MenuItem("Delete"))
         {
+            std::remove_if (
+                pSelectedArchive->EntryList.begin(), 
+                pSelectedArchive->EntryList.end(), 
+                [](EntryInfo const& obj) {
+                    return !strcmp(obj.FileName, pContextEntry->FileName);
+                }
+            ), 
             pContextEntry = nullptr;
         }
 
@@ -177,7 +213,8 @@ void Editor::ProcessWindow()
                 ImGui::SetNextItemWidth(ImGui::GetColumnWidth() - style.ItemSpacing.x - style.WindowPadding.x);
 
                 static ImGuiTextFilter filter;
-                Widget::Filter("##Search", filter, "Search");
+                std::string hint = std::format("Search  -  Total entries: {}", pSelectedArchive->EntryList.size());
+                Widget::Filter("##Search", filter, hint.c_str());
                 if (ImGui::BeginTable("ListedItems", 3, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
                 {
                     // Freeze the header row
@@ -239,7 +276,7 @@ void Editor::ProcessWindow()
                             }
 
                             ImGui::TableNextColumn();
-                            ImGui::Text(entry.FileType.c_str());
+                            ImGui::Text(entry.Type.c_str());
                             ImGui::TableNextColumn();
                             ImGui::Text("%d kb", entry.Size*2);
                         }
@@ -249,7 +286,6 @@ void Editor::ProcessWindow()
                 }
 
                 ImGui::NextColumn();
-                // ImGui::Text("Total lines: %d", archive.Entries.size(): 0);
                 ImVec2 sz = Widget::CalcSize(2, true, true);
 
                 ImGui::Button("Import", sz);
@@ -302,9 +338,9 @@ void Editor::ProcessWindow()
                     std::remove_if (
                         ArchiveList.begin(), 
                         ArchiveList.end(), 
-                        //here comes the C++11 lambda:
+                        
                         [&archive](IMGArchive const& obj) {
-                            return obj.Path == archive.Path;
+                            return obj.bCreateNew ? obj.FileName == archive.FileName : obj.Path == archive.Path;
                         }
                     ), 
                     ArchiveList.end()

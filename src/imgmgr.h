@@ -13,12 +13,14 @@ struct EntryInfo
     uint32_t Offset;        // in sectors (each sector is 2048 bytes)
     uint16_t Size;          // in sectors (each sector is 2048 bytes)
     uint16_t unused;
-    char FileName[24];
+    char FileName[24];      // file name in the archive
 
     // editor data
-    std::string FileType = "Unknown";
-    bool bSelected = false; // Is item currently selected
-    bool bRename = false;   // Is rename in progress
+    std::string Type    = "Unknown";
+    std::string Path    = "";       // Path used for importing
+    bool bImported      = false;    // Was the item imported    
+    bool bRename        = false;    // Is rename in progress
+    bool bSelected      = false;    // Is item currently selected
 };
 
 /*

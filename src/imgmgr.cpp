@@ -33,12 +33,12 @@ IMGArchive::IMGArchive(std::string Path, bool CreateNew)
                         fread(entry.FileName, sizeof(entry.FileName), 1, fp);
 
                         // extract file type
-                        if (strstr(entry.FileName, ".dff")) entry.FileType = "Model";
-                        if (strstr(entry.FileName, ".txd")) entry.FileType = "Texture";
-                        if (strstr(entry.FileName, ".col")) entry.FileType = "Collision";
-                        if (strstr(entry.FileName, ".ifp")) entry.FileType = "Animation";
-                        if (strstr(entry.FileName, ".ipl")) entry.FileType = "Item placement";
-                        if (strstr(entry.FileName, ".ide")) entry.FileType = "Item defination";
+                        if (strstr(entry.FileName, ".dff")) entry.Type = "Model";
+                        if (strstr(entry.FileName, ".txd")) entry.Type = "Texture";
+                        if (strstr(entry.FileName, ".col")) entry.Type = "Collision";
+                        if (strstr(entry.FileName, ".ifp")) entry.Type = "Animation";
+                        if (strstr(entry.FileName, ".ipl")) entry.Type = "Item placement";
+                        if (strstr(entry.FileName, ".ide")) entry.Type = "Item defination";
 
                         EntryList.push_back(std::move(entry));
                     }

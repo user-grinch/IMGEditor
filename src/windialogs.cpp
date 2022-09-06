@@ -34,7 +34,7 @@ std::string WinDialogs::SaveFile(std::string fileName)
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = 0;
     ofn.lpstrFile = fileName.data();
-    ofn.nMaxFile = fileName.capacity();
+    ofn.nMaxFile = static_cast<DWORD>(fileName.capacity());
     ofn.lpstrFilter = "IMG Archive\0*.IMG\0All\0*.*\0";
     ofn.nFilterIndex = 1;
     ofn.lpstrFileTitle = NULL;
