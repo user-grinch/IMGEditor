@@ -42,12 +42,12 @@ void Ui::Renderer::ApplyLightTheme()
     ImVec4* colors = style->Colors;
     
     style->AntiAliasedLines = true;
-    style->FrameBorderSize = 0.50f;
+    style->FrameBorderSize = 1.0f;
     style->WindowBorderSize = 0.00f;
-    style->PopupBorderSize = 0.50f;
+    style->PopupBorderSize =1.0f;
     style->ScrollbarRounding = 0.0f;
     style->TabRounding = 0.0f;
-    style->TabBorderSize = 0.50f;
+    style->TabBorderSize = 1.0f;
 
     colors[ImGuiCol_Text]                   = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
     colors[ImGuiCol_TextDisabled]           = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
@@ -89,8 +89,8 @@ void Ui::Renderer::ApplyLightTheme()
     colors[ImGuiCol_TabUnfocusedActive]     = colors[ImGuiCol_TabActive];
     colors[ImGuiCol_PlotLines]              = ImVec4(0.39f, 0.39f, 0.39f, 1.00f);
     colors[ImGuiCol_PlotLinesHovered]       = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
-    colors[ImGuiCol_PlotHistogram]          = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
-    colors[ImGuiCol_PlotHistogramHovered]   = ImVec4(1.00f, 0.45f, 0.00f, 1.00f);
+    colors[ImGuiCol_PlotHistogram]          = ImVec4(0.73f, 0.82f, 0.98f, 1.00f);
+    colors[ImGuiCol_PlotHistogramHovered]   = ImVec4(0.78f, 0.87f, 0.98f, 1.00f);
     colors[ImGuiCol_TableHeaderBg]          = ImVec4(0.94f, 0.94f, 0.94f, 1.00f);
     colors[ImGuiCol_TableBorderStrong]      = ImVec4(0.57f, 0.57f, 0.64f, 1.00f);   // Prefer using Alpha=1.0 here
     colors[ImGuiCol_TableBorderLight]       = ImVec4(0.68f, 0.68f, 0.74f, 1.00f);   // Prefer using Alpha=1.0 here
@@ -110,9 +110,9 @@ void Ui::Renderer::ApplyDarkTheme()
     ImVec4* colors = style->Colors;
     
     style->AntiAliasedLines = true;
-    style->FrameBorderSize = 0.50f;
+    style->FrameBorderSize = 1.0f;
     style->WindowBorderSize = 0.00f;
-    style->PopupBorderSize = 1.00f;
+    style->PopupBorderSize =1.0f;
     style->ScrollbarRounding = 0.0f;
     style->TabRounding = 0.0f;
     style->TabBorderSize = 1.0f;
@@ -122,7 +122,7 @@ void Ui::Renderer::ApplyDarkTheme()
     style->Colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.05f, 0.06f, 0.95f);
     style->Colors[ImGuiCol_ChildBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
     style->Colors[ImGuiCol_PopupBg] = ImVec4(0.06f, 0.05f, 0.06f, 0.95f);
-    style->Colors[ImGuiCol_Border] = ImVec4(0.12f, 0.12f, 0.12f, 1.0f);
+    style->Colors[ImGuiCol_Border] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
     style->Colors[ImGuiCol_BorderShadow] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
     style->Colors[ImGuiCol_FrameBg] = ImVec4(0.15f, 0.15f, 0.15f, 0.95f);
     style->Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
@@ -153,8 +153,8 @@ void Ui::Renderer::ApplyDarkTheme()
     style->Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
     style->Colors[ImGuiCol_PlotLines] = ImVec4(0.40f, 0.39f, 0.38f, 0.63f);
     style->Colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.25f, 1.00f, 0.00f, 1.00f);
-    style->Colors[ImGuiCol_PlotHistogram] = ImVec4(0.40f, 0.39f, 0.38f, 0.63f);
-    style->Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.25f, 1.00f, 0.00f, 1.00f);
+    style->Colors[ImGuiCol_PlotHistogram] = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+    style->Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
     style->Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.06f, 0.05f, 0.06f, 0.95f);
     style->Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.20f, 0.20f, 0.20f, 0.6f);
     style->Colors[ImGuiCol_TableHeaderBg] = ImVec4(0.19f, 0.19f, 0.20f, 1.00f);

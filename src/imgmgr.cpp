@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "imgmgr.h"
+#include <filesystem>
 
 IMGArchive::IMGArchive(std::string Path, bool CreateNew)
 {
@@ -32,14 +33,7 @@ IMGArchive::IMGArchive(std::string Path, bool CreateNew)
                         fread(&entry.unused, sizeof(entry.unused), 1, fp);
                         fread(entry.FileName, sizeof(entry.FileName), 1, fp);
 
-                        // extract file type
-                        if (strstr(entry.FileName, ".dff")) entry.Type = "Model";
-                        if (strstr(entry.FileName, ".txd")) entry.Type = "Texture";
-                        if (strstr(entry.FileName, ".col")) entry.Type = "Collision";
-                        if (strstr(entry.FileName, ".ifp")) entry.Type = "Animation";
-                        if (strstr(entry.FileName, ".ipl")) entry.Type = "Item placement";
-                        if (strstr(entry.FileName, ".ide")) entry.Type = "Item defination";
-
+                        entry.Type = GetFileType(entry.FileName);
                         EntryList.push_back(std::move(entry));
                     }
                 }
@@ -50,7 +44,20 @@ IMGArchive::IMGArchive(std::string Path, bool CreateNew)
     }
 } 
 
-void IMGArchive::ExportEntry(EntryInfo *pEntry, std::string filePath)
+std::string IMGArchive::GetFileType(const char* name)
+{
+    std::string type = "Unknown";
+    if (strstr(name, ".dff")) type = "Model";
+    if (strstr(name, ".txd")) type = "Texture";
+    if (strstr(name, ".col")) type = "Collision";
+    if (strstr(name, ".ifp")) type = "Animation";
+    if (strstr(name, ".ipl")) type = "Item placement";
+    if (strstr(name, ".ide")) type = "Item defination";
+
+    return type;
+}
+
+void IMGArchive::ExportEntry(EntryInfo *pEntry, std::string filePath, bool log)
 {
     FILE *pOut = fopen(filePath.c_str(), "wb+");
     FILE *pImg = fopen(Path.c_str(), "rb");
@@ -64,13 +71,95 @@ void IMGArchive::ExportEntry(EntryInfo *pEntry, std::string filePath)
         {
             fread(buf, size, 1, pImg);
             fwrite(buf, size, 1, pOut);
-            AddLogMessage(std::format("Exported {}", pEntry->FileName));
+            if (log)
+            {
+                AddLogMessage(std::format("Exported {}", pEntry->FileName));
+            }
             buf[pEntry->Size] ='\0';
             
             delete[] buf;
         }
+    }
+    if (pImg)
+    {
         fclose(pImg);
+    }
+    if (pOut)
+    {
         fclose(pOut);
+    }
+}
+
+void IMGArchive::ExportAll(ArchiveInfo *pInfo)
+{
+    pInfo->pArc->ProgressBar.bInUse = true;
+    size_t total =  pInfo->pArc->EntryList.size();
+    
+    for (size_t i = 0; i < total; ++i)
+    {
+        std::string path = std::format("{}\\{}", pInfo->path, pInfo->pArc->EntryList[i].FileName);
+        pInfo->pArc->ExportEntry(&pInfo->pArc->EntryList[i], path, false);
+        pInfo->pArc->ProgressBar.Percentage = (static_cast<float>(i)+1)/ static_cast<float>(total);
+
+        if (pInfo->pArc->ProgressBar.bCancel)
+        {
+            pInfo->pArc->ProgressBar.bCancel = false;
+            break;
+        }
+    }
+    pInfo->pArc->AddLogMessage("Exported archive");
+    pInfo->pArc->ProgressBar.bInUse = false;
+    delete pInfo;
+}
+
+void IMGArchive::ImportEntry(const std::string &path)
+{
+    std::filesystem::path p {path};
+
+    // skip folder paths
+    if (p.extension() == "")
+    {
+        return;
+    }
+
+    std::string name = p.filename().string();
+
+    if (name.size() > 23)
+    {
+        AddLogMessage(std::format("Skipping {}. Name too large.", name));
+        return;
+    }
+
+    EntryInfo info;
+    strcpy(info.FileName, name.c_str());
+    info.FileName[23] = '\0';
+    info.Path = path;
+    info.bImported = true;
+    info.Type = GetFileType(info.FileName);
+    info.Size = std::filesystem::file_size(path)/2048; // bytes -> sector
+    EntryList.push_back(std::move(info));
+}
+
+void IMGArchive::ImportEntries(const std::string &path)
+{
+    std::string temp = "";
+    for (char c : path)
+    {
+        if (c != '\0')
+        {
+            temp += c;
+        }
+        else
+        {
+            if (temp == "")
+            {
+                break;
+            }
+
+            temp += "\0";
+            ImportEntry(temp);
+            temp = "";
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "windialogs.h"
+#include <shobjidl.h> 
 
 std::string WinDialogs::OpenFile()
 {
@@ -26,6 +27,23 @@ std::string WinDialogs::OpenFile()
     return "";
 }
 
+std::string WinDialogs::ImportFiles()
+{
+    OPENFILENAME ofn = { sizeof ofn };
+    char file[2048];
+    file[0] = '\0';
+    ofn.lpstrFile = file;
+    ofn.nMaxFile = 2048;
+    ofn.Flags = OFN_ALLOWMULTISELECT | OFN_EXPLORER;
+
+    if (GetOpenFileName(&ofn))
+    {
+        return std::string(ofn.lpstrFile, 2048);
+    }
+
+    return "";
+}
+
 std::string WinDialogs::SaveFile(std::string fileName)
 {
     fileName.resize(255);
@@ -47,5 +65,45 @@ std::string WinDialogs::SaveFile(std::string fileName)
         return std::string(ofn.lpstrFile);
     }
 
+    return "";
+}
+
+std::string WinDialogs::SaveFolder()
+{
+    IFileOpenDialog *pFileOpen;
+    // Create the FileOpenDialog object.
+    HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, 
+            IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
+
+    if (SUCCEEDED(hr))
+    {
+        pFileOpen->SetOptions(FOS_PICKFOLDERS);
+        // Show the Open dialog box.
+        hr = pFileOpen->Show(NULL);
+
+        // Get the file name from the dialog box.
+        if (SUCCEEDED(hr))
+        {
+            IShellItem *pItem;
+            hr = pFileOpen->GetResult(&pItem);
+            if (SUCCEEDED(hr))
+            {
+                PWSTR pszFilePath;
+                hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+
+                // Display the file name to the user.
+                if (SUCCEEDED(hr))
+                {
+                    std::wstring wstr(pszFilePath);
+                    std::string str(wstr.begin(), wstr.end());
+                    CoTaskMemFree(pszFilePath);
+                    return str;
+                }
+                pItem->Release();
+            }
+        }
+        pFileOpen->Release();
+    }
+    CoUninitialize();
     return "";
 }

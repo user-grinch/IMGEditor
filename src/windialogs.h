@@ -7,6 +7,8 @@ public:
     WinDialogs() = delete;
     WinDialogs(WinDialogs&&) = delete;
 
+    static std::string ImportFiles();
     static std::string OpenFile();
     static std::string SaveFile(std::string fileName);
+    static std::string SaveFolder();
 };

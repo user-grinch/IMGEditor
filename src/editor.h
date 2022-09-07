@@ -17,6 +17,7 @@ private:
     static void ProcessContextMenu();
     static void ProcessMenuBar();
     static void ProcessWindow();
+
 public:
 
     // Returns true if archive with the given name already exists

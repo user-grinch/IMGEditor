@@ -95,19 +95,24 @@ void Editor::ProcessMenuBar()
         {
             std::string path = WinDialogs::OpenFile();
 
-            if (path != "" && IMGArchive::IsSupported(path))
+            if (path != "")
             {
-                ArchiveList.push_back(std::move(IMGArchive(std::move(path))));
-            }
-            else
-            {
-                pApp->SetPopup([]()
+                if (IMGArchive::IsSupported(path))
                 {
-                    ImGui::Text("IMG format not supported!");
-                    ImGui::Spacing();
-                    ImGui::Text("IMG Editor only supports below games,");
-                    ImGui::Text("1. GTA SA");
-                });
+                    ArchiveList.push_back(std::move(IMGArchive(std::move(path))));
+                }
+                else
+                {
+                    pApp->SetPopup([]()
+                    {
+                        ImGui::Text("IMG format not supported!");
+                        ImGui::Spacing();
+                        ImGui::Text("Supported formats,");
+                        ImGui::Text("1. IMG v1 (GTA III & VC)");
+                        ImGui::Text("2. IMG v2 (GTA SA)");
+                        ImGui::Text("3. Fastman92's format (GTA SA with FLA plugin)");
+                    });
+                }
             }
         }
         ImGui::MenuItem("Save");
@@ -286,9 +291,32 @@ void Editor::ProcessWindow()
                 }
 
                 ImGui::NextColumn();
-                ImVec2 sz = Widget::CalcSize(2, true, true);
 
-                ImGui::Button("Import", sz);
+                ImVec2 barSz = Widget::CalcSize(1, true, true);
+                ImGui::ProgressBar(pSelectedArchive->ProgressBar.Percentage, barSz);
+                
+                if (!pSelectedArchive->ProgressBar.bInUse)
+                {
+                    ImGui::BeginDisabled();
+                }
+                if (ImGui::Button("Cancel", barSz))
+                {
+                    pSelectedArchive->ProgressBar.bCancel = true;
+                    pSelectedArchive->ProgressBar.Percentage = 0.0f;
+                    pSelectedArchive->AddLogMessage("Canceled operation");
+                }
+                if (!pSelectedArchive->ProgressBar.bInUse)
+                {
+                    ImGui::EndDisabled();
+                }
+
+                ImGui::Spacing();
+                ImVec2 sz = Widget::CalcSize(2, true, true);
+                if (ImGui::Button("Import", sz))
+                {
+                    std::string fileNames = WinDialogs::ImportFiles();
+                    pSelectedArchive->ImportEntries(fileNames);
+                }
                 ImGui::SameLine();
                 if (ImGui::Button("Select all", sz))
                 {
@@ -299,13 +327,17 @@ void Editor::ProcessWindow()
                     pSelectedArchive->AddLogMessage("Selected all entries");
                 }
 
-                ImGui::Button("Export", sz);
+                if (ImGui::Button("Export all", sz))
+                {
+                    if (!pSelectedArchive->ProgressBar.bInUse)
+                    {
+                        std::string path = WinDialogs::SaveFolder();
+                        ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
+                        CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportAll, info, NULL, NULL);
+                    }
+                }
                 ImGui::SameLine();
-                ImGui::Button("Export all", sz);
-
                 ImGui::Button("Dump list", sz);
-                ImGui::SameLine();
-                ImGui::Button("Merge", sz);
 
                 ImGui::Spacing();
                 

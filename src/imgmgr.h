@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <filesystem>
+#include <functional>
 
 /*
     Contains information about each entry in the archive
@@ -23,6 +23,21 @@ struct EntryInfo
     bool bSelected      = false;    // Is item currently selected
 };
 
+struct ProgressInfo
+{
+    float Percentage = 0.0f;
+    bool bCancel = false;
+    bool bInUse = false;
+};
+
+class IMGArchive;
+
+struct ArchiveInfo
+{
+    IMGArchive* pArc;
+    std::string path;
+};
+
 /*
     Wrapper class for archives
     Contains helper functions for processing the img
@@ -35,6 +50,7 @@ public:
     uint32_t TotalEntries;
     std::vector<EntryInfo> EntryList;
     std::vector<std::string> LogList;
+    ProgressInfo ProgressBar;
 
     bool bOpen = true;
     bool bCreateNew;
@@ -45,10 +61,19 @@ public:
     void AddLogMessage(std::string &&message);
 
     // Export entity
-    void ExportEntry(EntryInfo *pEntry, std::string filePath);
+    void ExportEntry(EntryInfo *pEntry, std::string filePath, bool log = true);
+    
+    // Exports the entire archive, should run in a separate thread
+    static void ExportAll(ArchiveInfo *pInfo);
+
+    // Get file type
+    static std::string GetFileType(const char* name);
 
     // Import entity
-    void ImportEntry();
+    void ImportEntry(const std::string& path);
+
+    // Imports multiple file entries at once
+    void ImportEntries(const std::string& filePaths);
 
     // Returns true if archive is supported(v2)
     static bool IsSupported(const std::string &Path);
