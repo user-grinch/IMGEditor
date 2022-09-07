@@ -24,4 +24,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: IMGEditor
-          path: build\bin\IMGEditor.exe
+          path: build\bin\IMGEditorApp.exe
