@@ -78,5 +78,5 @@ public:
     static bool IsSupported(const std::string &Path);
 
     // Rebuilds the IMG archive, save changes
-    void Rebuild();
+    void Rebuild(const std::string& savePath);
 };

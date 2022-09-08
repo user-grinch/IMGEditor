@@ -20,6 +20,9 @@ private:
 
 public:
 
+    // Adds a new archive to the list
+    static void AddArchiveEntry(IMGArchive &&archive);
+
     // Returns true if archive with the given name already exists
     static bool DoesArchiveExist(const std::string &name);
 

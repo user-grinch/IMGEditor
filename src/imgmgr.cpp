@@ -183,12 +183,18 @@ bool IMGArchive::IsSupported(const std::string &Path)
     return false;
 }
 
-void IMGArchive::Rebuild()
+void IMGArchive::Rebuild(const std::string& savePath)
 {
-    FILE *fOut = fopen("C:\\Users\\User\\Desktop\\test.img", "wb");
+    if (Path == "")
+    {
+        return;
+    }
+
+    std::string tempPath = savePath + ".temp";
+    FILE *fOut = fopen(tempPath.c_str(), "wb");
     FILE *fImg = fopen(Path.c_str(), "rb");
 
-    if (fOut && fImg)
+    if (fOut)
     {
         // header
         fwrite("VER2", 4, 1, fOut);
@@ -250,5 +256,11 @@ void IMGArchive::Rebuild()
     if (fOut)
     {
         fclose(fOut);
+        remove(Path.c_str());
+        rename(tempPath.c_str(), savePath.c_str());
     }
+
+    // update data
+    Path = savePath;
+    FileName = std::move(std::filesystem::path(savePath).filename().stem().string());
 }

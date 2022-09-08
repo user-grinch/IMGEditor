@@ -82,14 +82,14 @@ void Editor::ProcessMenuBar()
                     std::string name = std::format("Untitled({})", i);
                     if (!DoesArchiveExist(name))
                     {
-                        ArchiveList.push_back({name, true});
+                        AddArchiveEntry({name, true});
                         break;
                     }
                 }
             }
             else
             {
-                ArchiveList.push_back({"Untitled", true});
+                AddArchiveEntry({"Untitled", true});
             }
         }
         if (ImGui::MenuItem("Open..."))
@@ -100,7 +100,7 @@ void Editor::ProcessMenuBar()
             {
                 if (IMGArchive::IsSupported(path))
                 {
-                    ArchiveList.push_back(std::move(IMGArchive(std::move(path))));
+                    AddArchiveEntry(std::move(IMGArchive(std::move(path))));
                 }
                 else
                 {
@@ -118,9 +118,19 @@ void Editor::ProcessMenuBar()
         }
         if (ImGui::MenuItem("Save"))
         {
-            pSelectedArchive->Rebuild();
+            if (pSelectedArchive->Path == "")
+            {
+                pSelectedArchive->Path = std::move(WinDialogs::SaveFile(pSelectedArchive->FileName + ".img"));
+            }
+            pSelectedArchive->Rebuild(pSelectedArchive->Path);
+            pSelectedArchive->AddLogMessage("Archive saved");
         }
-        ImGui::MenuItem("Save as...");
+        if (ImGui::MenuItem("Save as..."))
+        {
+            std::string path = WinDialogs::SaveFile(pSelectedArchive->FileName + ".img");
+            pSelectedArchive->Rebuild(path);
+            pSelectedArchive->AddLogMessage("Archive saved");
+        }
         ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Help"))
@@ -273,7 +283,6 @@ void Editor::ProcessWindow()
                                     for (EntryInfo &e : archive.EntryList)
                                     {
                                         // allow shift multiselect
-                                        // Ignore opposite clicks
                                         ImVec2 min = ImGui::GetItemRectMin();
                                         if (ImGui::IsKeyDown(VK_LSHIFT) || ImGui::IsKeyDown(VK_RSHIFT))
                                         {
@@ -379,7 +388,7 @@ void Editor::ProcessWindow()
                     {   
                         e.bSelected = !e.bSelected;
                     }
-                    pSelectedArchive->AddLogMessage("Selected inversed");
+                    pSelectedArchive->AddLogMessage("Selection inversed");
                 }
                 if (ImGui::Button("Delete selection", sz))
                 {
@@ -439,6 +448,19 @@ void Editor::ProcessWindow()
 
         ImGui::EndTabBar();
     }
+}
+
+void Editor::AddArchiveEntry(IMGArchive &&archive)
+{
+    for (IMGArchive &arc : ArchiveList)
+    {
+        if (arc.Path == archive.Path)
+        {
+            return;
+        }
+    }
+
+    ArchiveList.push_back(std::move(archive));
 }
 
 void Editor::Run()
