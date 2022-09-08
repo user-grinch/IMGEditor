@@ -116,19 +116,21 @@ void Editor::ProcessMenuBar()
                 }
             }
         }
-        if (ImGui::MenuItem("Save"))
+        if (ImGui::MenuItem("Save") && !pSelectedArchive->ProgressBar.bInUse)
         {
             if (pSelectedArchive->Path == "")
             {
-                pSelectedArchive->Path = std::move(WinDialogs::SaveFile(pSelectedArchive->FileName + ".img"));
+                pSelectedArchive->Path = WinDialogs::SaveFile(pSelectedArchive->FileName + ".img");
             }
-            pSelectedArchive->Rebuild(pSelectedArchive->Path);
+            ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, pSelectedArchive->Path};
+            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::Rebuild, info, NULL, NULL);
             pSelectedArchive->AddLogMessage("Archive saved");
         }
-        if (ImGui::MenuItem("Save as..."))
+        if (ImGui::MenuItem("Save as...") && !pSelectedArchive->ProgressBar.bInUse)
         {
             std::string path = WinDialogs::SaveFile(pSelectedArchive->FileName + ".img");
-            pSelectedArchive->Rebuild(path);
+            ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
+            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::Rebuild, info, NULL, NULL);
             pSelectedArchive->AddLogMessage("Archive saved");
         }
         ImGui::EndMenu();
@@ -364,14 +366,11 @@ void Editor::ProcessWindow()
                 }
                 ImGui::SameLine();
 
-                if (ImGui::Button("Export all", sz))
+                if (ImGui::Button("Export all", sz) && !pSelectedArchive->ProgressBar.bInUse)
                 {
-                    if (!pSelectedArchive->ProgressBar.bInUse)
-                    {
-                        std::string path = WinDialogs::SaveFolder();
-                        ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
-                        CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportAll, info, NULL, NULL);
-                    }
+                    std::string path = WinDialogs::SaveFolder();
+                    ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
+                    CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportAll, info, NULL, NULL);
                 }
                 if (ImGui::Button("Select all", sz))
                 {

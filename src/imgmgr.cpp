@@ -183,28 +183,30 @@ bool IMGArchive::IsSupported(const std::string &Path)
     return false;
 }
 
-void IMGArchive::Rebuild(const std::string& savePath)
+void IMGArchive::Rebuild(ArchiveInfo *pInfo)
 {
-    if (Path == "")
+    if (pInfo->pArc->Path == "")
     {
         return;
     }
 
-    std::string tempPath = savePath + ".temp";
+    pInfo->pArc->ProgressBar.bInUse = true;
+    std::string tempPath = pInfo->path + ".temp";
     FILE *fOut = fopen(tempPath.c_str(), "wb");
-    FILE *fImg = fopen(Path.c_str(), "rb");
+    FILE *fImg = fopen(pInfo->pArc->Path.c_str(), "rb");
 
     if (fOut)
     {
         // header
         fwrite("VER2", 4, 1, fOut);
-        uint32_t TotalEntries = static_cast<uint32_t>(EntryList.size());
+        uint32_t TotalEntries = static_cast<uint32_t>(pInfo->pArc->EntryList.size());
         fwrite(&TotalEntries, sizeof(TotalEntries), 1, fOut);
 
         // directory entry
         uint32_t offset = 4096; // start offset
         size_t index = 0;
-        for (EntryInfo &e : EntryList)
+        size_t total = pInfo->pArc->EntryList.size();
+        for (EntryInfo &e : pInfo->pArc->EntryList)
         {
             size_t size = 0;
             FILE *fFile = NULL;
@@ -229,7 +231,8 @@ void IMGArchive::Rebuild(const std::string& savePath)
                 fread(buf, size, 1, e.bImported? fFile : fImg);
                 e.Offset = offset/2048;
 
-                fseek(fOut, 8+index*32, 0);
+                size_t pos = 8 + static_cast<long>(index) * 32;
+                fseek(fOut, pos, 0);
                 fwrite(&e.Offset, sizeof(e.Offset), 1, fOut);
                 fwrite(&e.Size, sizeof(e.Size), 1, fOut);
                 fwrite(&e.unused, sizeof(e.unused), 1, fOut);
@@ -245,6 +248,26 @@ void IMGArchive::Rebuild(const std::string& savePath)
                 fclose(fFile);
             }
             
+            pInfo->pArc->ProgressBar.Percentage = (static_cast<float>(index)+1)/ static_cast<float>(total);
+
+            if (pInfo->pArc->ProgressBar.bCancel)
+            {
+                pInfo->pArc->ProgressBar.bCancel = false;
+                if (fImg)
+                {
+                    fclose(fImg);
+                }
+                if (fOut)
+                {
+                    fclose(fOut);
+                    remove(tempPath.c_str());
+                }
+                pInfo->pArc->AddLogMessage("Rebuilding failed");
+                pInfo->pArc->ProgressBar.bInUse = false;
+                delete pInfo;
+                return;
+            }
+            
             offset += e.Size*2048; // add the sector for this entry
             ++index;
         }        
@@ -256,11 +279,13 @@ void IMGArchive::Rebuild(const std::string& savePath)
     if (fOut)
     {
         fclose(fOut);
-        remove(Path.c_str());
-        rename(tempPath.c_str(), savePath.c_str());
+        remove(pInfo->pArc->Path.c_str());
+        rename(tempPath.c_str(), pInfo->path.c_str());
     }
 
     // update data
-    Path = savePath;
-    FileName = std::move(std::filesystem::path(savePath).filename().stem().string());
+    pInfo->pArc->Path = pInfo->path;
+    pInfo->pArc->FileName = std::move(std::filesystem::path(pInfo->path).filename().stem().string());
+    pInfo->pArc->ProgressBar.bInUse = false;
+    delete pInfo;
 }
