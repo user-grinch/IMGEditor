@@ -10,10 +10,10 @@
 struct EntryInfo
 {
     // archive data
-    uint32_t Offset;        // in sectors (each sector is 2048 bytes)
-    uint16_t Size;          // in sectors (each sector is 2048 bytes)
-    uint16_t unused;
-    char FileName[24];      // file name in the archive
+    uint32_t Offset     = 0;        // in sectors (each sector is 2048 bytes)
+    uint16_t Size       = 0;        // in sectors (each sector is 2048 bytes)
+    uint16_t unused     = 0;
+    char FileName[24];              // file name in the archive
 
     // editor data
     std::string Type    = "Unknown";
@@ -47,7 +47,6 @@ class IMGArchive
 public:
     std::string Path;
     std::string FileName;
-    uint32_t TotalEntries;
     std::vector<EntryInfo> EntryList;
     std::vector<std::string> LogList;
     ProgressInfo ProgressBar;
@@ -77,4 +76,7 @@ public:
 
     // Returns true if archive is supported(v2)
     static bool IsSupported(const std::string &Path);
+
+    // Rebuilds the IMG archive, save changes
+    void Rebuild();
 };

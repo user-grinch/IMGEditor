@@ -23,6 +23,7 @@ IMGArchive::IMGArchive(std::string Path, bool CreateNew)
                 fread(ver, sizeof(ver), 1, fp);
                 if (ver[0] == 'V' && ver[1] == 'E' && ver[2] == 'R' && ver[3] == '2')
                 {
+                    uint32_t TotalEntries;
                     fread(&TotalEntries, sizeof(TotalEntries), 1, fp);
 
                     for (unsigned int i = 0; i < TotalEntries; ++i)
@@ -136,8 +137,9 @@ void IMGArchive::ImportEntry(const std::string &path)
     info.Path = path;
     info.bImported = true;
     info.Type = GetFileType(info.FileName);
-    info.Size = std::filesystem::file_size(path)/2048; // bytes -> sector
+    info.Size = static_cast<uint16_t>(std::filesystem::file_size(path))/2048; // bytes -> sector
     EntryList.push_back(std::move(info));
+    AddLogMessage(std::format("Imported {}", name));
 }
 
 void IMGArchive::ImportEntries(const std::string &path)
@@ -179,4 +181,55 @@ bool IMGArchive::IsSupported(const std::string &Path)
         fclose(fp);
     }
     return false;
+}
+
+void IMGArchive::Rebuild()
+{
+    FILE *fpOut = fopen("C:\\Users\\User\\Desktop\\test.img", "wb");
+    FILE *fpIn = fopen(Path.c_str(), "rb");
+
+    if (fpOut && fpIn)
+    {
+        // header
+        fwrite("VER2", 4, 1, fpOut);
+        uint32_t TotalEntries = static_cast<uint32_t>(EntryList.size());
+        fwrite(&TotalEntries, sizeof(TotalEntries), 1, fpOut);
+
+        // directory entry
+        uint32_t offset = 4096; // start offset
+        size_t index = 0;
+        for (EntryInfo &e : EntryList)
+        {
+            // read data from file
+            fseek(fpIn, e.Offset*2048, 0);
+            size_t size = e.Size*2048;
+            char *buf = new char[size + 1];
+            if (buf)
+            {
+                fread(buf, size, 1, fpIn);
+                e.Offset = offset/2048;
+
+                fseek(fpOut, 8+index*32, 0);
+                fwrite(&e.Offset, sizeof(e.Offset), 1, fpOut);
+                fwrite(&e.Size, sizeof(e.Size), 1, fpOut);
+                fwrite(&e.unused, sizeof(e.unused), 1, fpOut);
+                fwrite(e.FileName, sizeof(e.FileName), 1, fpOut);
+
+                fseek(fpOut, offset, 0);
+                fwrite(buf, size, 1, fpOut);
+                delete[] buf;
+            }
+            
+            offset += e.Size*2048; // add the sector for this entry
+            ++index;
+        }        
+    }
+    if (fpIn)
+    {
+        fclose(fpIn);
+    }
+    if (fpOut)
+    {
+        fclose(fpOut);
+    }
 }

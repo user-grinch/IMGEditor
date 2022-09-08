@@ -115,7 +115,10 @@ void Editor::ProcessMenuBar()
                 }
             }
         }
-        ImGui::MenuItem("Save");
+        if (ImGui::MenuItem("Save"))
+        {
+            pSelectedArchive->Rebuild();
+        }
         ImGui::MenuItem("Save as...");
         ImGui::EndMenu();
     }
@@ -188,6 +191,11 @@ void Editor::ProcessContextMenu()
             }
             pContextEntry = nullptr;
         }
+        if (ImGui::MenuItem("Copy name"))
+        {
+            ImGui::SetClipboardText(pContextEntry->FileName);
+            pContextEntry = nullptr;
+        }
 
         if (ImGui::MenuItem("Close"))
         {
@@ -213,19 +221,20 @@ void Editor::ProcessWindow()
             {
                 pSelectedArchive = &archive;
                 ImGui::Columns(2, NULL, false);
-                ImGui::SetColumnWidth(0, windowWidth/1.5f);
+                ImGui::SetColumnWidth(0, windowWidth/1.4f);
                 // Search bar
                 ImGui::SetNextItemWidth(ImGui::GetColumnWidth() - style.ItemSpacing.x - style.WindowPadding.x);
 
                 static ImGuiTextFilter filter;
                 std::string hint = std::format("Search  -  Total entries: {}", pSelectedArchive->EntryList.size());
                 Widget::Filter("##Search", filter, hint.c_str());
-                if (ImGui::BeginTable("ListedItems", 3, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
+                if (ImGui::BeginTable("ListedItems", 4, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
                 {
                     // Freeze the header row
                     ImGui::TableSetupScrollFreeze(0, 1);
                     ImGui::TableSetupColumn("Name");
                     ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 100);
+                    ImGui::TableSetupColumn("Offset", ImGuiTableColumnFlags_WidthFixed, 50);
                     ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, 50);
                     ImGui::TableHeadersRow();
                     for (EntryInfo &entry : archive.EntryList)
@@ -283,6 +292,8 @@ void Editor::ProcessWindow()
                             ImGui::TableNextColumn();
                             ImGui::Text(entry.Type.c_str());
                             ImGui::TableNextColumn();
+                            ImGui::Text(std::format("0x{:X}", entry.Offset).c_str());
+                            ImGui::TableNextColumn();
                             ImGui::Text("%d kb", entry.Size*2);
                         }
                     }
@@ -318,14 +329,6 @@ void Editor::ProcessWindow()
                     pSelectedArchive->ImportEntries(fileNames);
                 }
                 ImGui::SameLine();
-                if (ImGui::Button("Select all", sz))
-                {
-                    for (EntryInfo &e : pSelectedArchive->EntryList)
-                    {   
-                        e.bSelected = true;
-                    }
-                    pSelectedArchive->AddLogMessage("Selected all entries");
-                }
 
                 if (ImGui::Button("Export all", sz))
                 {
@@ -336,9 +339,26 @@ void Editor::ProcessWindow()
                         CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportAll, info, NULL, NULL);
                     }
                 }
+                if (ImGui::Button("Select all", sz))
+                {
+                    for (EntryInfo &e : pSelectedArchive->EntryList)
+                    {   
+                        e.bSelected = true;
+                    }
+                    pSelectedArchive->AddLogMessage("Selected all entries");
+                }
                 ImGui::SameLine();
+                if (ImGui::Button("Select inverse", sz))
+                {
+                    for (EntryInfo &e : pSelectedArchive->EntryList)
+                    {   
+                        e.bSelected = !e.bSelected;
+                    }
+                    pSelectedArchive->AddLogMessage("Selected inversed");
+                }
                 ImGui::Button("Dump list", sz);
-
+                ImGui::SameLine();
+                ImGui::Button("Dummy", sz);
                 ImGui::Spacing();
                 
                 if (ImGui::BeginTable("Log", 1, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders))
@@ -389,7 +409,7 @@ void Editor::Run()
     Ui::Specification spec;
     spec.Name = "IMG Editor v" MENU_VERSION;
     spec.MenuBarFunc = ProcessMenuBar;
-    spec.Size = { 600, 500 };
+    spec.Size = { 650, 500 };
 
     spec.LayerFunc = ProcessWindow;
     spec.PopupFunc = WelcomePopup;
