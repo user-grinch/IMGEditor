@@ -2,7 +2,7 @@
 #include "editor.h"
 #include "widget.h"
 #include "windialogs.h"
-#define MENU_VERSION "1.0"
+#define MENU_VERSION "1.0-alpha"
 
 void Editor::AboutPopUp()
 {
@@ -31,9 +31,10 @@ void Editor::AboutPopUp()
 void Editor::WelcomePopup()
 {
     Widget::TextCentered("Welcome to IMG Editor v" MENU_VERSION);
-    Widget::TextCentered("by Grinch_" MENU_VERSION);
+    Widget::TextCentered("by Grinch_");
     ImGui::Spacing();
-    
+    ImGui::TextWrapped("This editor is still work in progress. There may be LOT of bugs. Feel free to report if you find any.");
+    ImGui::Dummy(ImVec2(0, 20));
     ImGui::Text("Supported IMG formats,");
     ImGui::Text("1. GTA 3");
     ImGui::Text("2. GTA VC");
@@ -162,13 +163,16 @@ void Editor::ProcessContextMenu()
     {
         if (ImGui::MenuItem("Delete"))
         {
-            std::remove_if (
-                pSelectedArchive->EntryList.begin(), 
-                pSelectedArchive->EntryList.end(), 
-                [](EntryInfo const& obj) {
-                    return !strcmp(obj.FileName, pContextEntry->FileName);
-                }
-            ), 
+            pSelectedArchive->EntryList.erase (
+                std::remove_if (
+                    pSelectedArchive->EntryList.begin(), 
+                    pSelectedArchive->EntryList.end(), 
+                    [](EntryInfo const& obj) {
+                        return !strcmp(obj.FileName, pContextEntry->FileName);
+                    }
+                ),
+                pSelectedArchive->EntryList.end()
+            ); 
             pContextEntry = nullptr;
         }
 
@@ -221,7 +225,7 @@ void Editor::ProcessWindow()
             {
                 pSelectedArchive = &archive;
                 ImGui::Columns(2, NULL, false);
-                ImGui::SetColumnWidth(0, windowWidth/1.4f);
+                ImGui::SetColumnWidth(0, windowWidth/1.5f);
                 // Search bar
                 ImGui::SetNextItemWidth(ImGui::GetColumnWidth() - style.ItemSpacing.x - style.WindowPadding.x);
 
@@ -265,16 +269,37 @@ void Editor::ProcessWindow()
                                 if (ImGui::Selectable(entry.FileName, entry.bSelected))
                                 {
                                     // selection & renanme disable
+                                    bool prevSelected = false;
                                     for (EntryInfo &e : archive.EntryList)
                                     {
-                                        // allow multiselect when ctrl is pressed
-                                        if (!(ImGui::IsKeyDown(VK_LCONTROL) || ImGui::IsKeyDown(VK_RCONTROL)))
+                                        // allow shift multiselect
+                                        // Ignore opposite clicks
+                                        ImVec2 min = ImGui::GetItemRectMin();
+                                        if (ImGui::IsKeyDown(VK_LSHIFT) || ImGui::IsKeyDown(VK_RSHIFT))
                                         {
-                                            e.bSelected  = false;
+                                            if (prevSelected)
+                                            {
+                                                e.bSelected = true;
+                                            }
+                                            if (!strcmp(e.FileName, entry.FileName))
+                                            {
+                                                prevSelected = false;
+                                            }
+                                            else
+                                            {
+                                                prevSelected = e.bSelected;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            // allow multiselect when ctrl is pressed
+                                            if (!(ImGui::IsKeyDown(VK_LCONTROL) || ImGui::IsKeyDown(VK_RCONTROL)))
+                                            {
+                                                e.bSelected  = false;
+                                            }
                                         }
                                         e.bRename  = false;
                                     }
-
                                     entry.bSelected = true;
                                 }
 
@@ -356,9 +381,21 @@ void Editor::ProcessWindow()
                     }
                     pSelectedArchive->AddLogMessage("Selected inversed");
                 }
-                ImGui::Button("Dump list", sz);
+                if (ImGui::Button("Delete selection", sz))
+                {
+                    pSelectedArchive->EntryList.erase (
+                        std::remove_if (
+                            pSelectedArchive->EntryList.begin(), 
+                            pSelectedArchive->EntryList.end(), 
+                            [](EntryInfo const& obj) {
+                                return obj.bSelected;
+                            }
+                        ),
+                        pSelectedArchive->EntryList.end()
+                    ); 
+                }
                 ImGui::SameLine();
-                ImGui::Button("Dummy", sz);
+                ImGui::Button("Dump list", sz);
                 ImGui::Spacing();
                 
                 if (ImGui::BeginTable("Log", 1, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders))
@@ -409,7 +446,7 @@ void Editor::Run()
     Ui::Specification spec;
     spec.Name = "IMG Editor v" MENU_VERSION;
     spec.MenuBarFunc = ProcessMenuBar;
-    spec.Size = { 650, 500 };
+    spec.Size = { 700, 500 };
 
     spec.LayerFunc = ProcessWindow;
     spec.PopupFunc = WelcomePopup;

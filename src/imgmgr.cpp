@@ -185,51 +185,70 @@ bool IMGArchive::IsSupported(const std::string &Path)
 
 void IMGArchive::Rebuild()
 {
-    FILE *fpOut = fopen("C:\\Users\\User\\Desktop\\test.img", "wb");
-    FILE *fpIn = fopen(Path.c_str(), "rb");
+    FILE *fOut = fopen("C:\\Users\\User\\Desktop\\test.img", "wb");
+    FILE *fImg = fopen(Path.c_str(), "rb");
 
-    if (fpOut && fpIn)
+    if (fOut && fImg)
     {
         // header
-        fwrite("VER2", 4, 1, fpOut);
+        fwrite("VER2", 4, 1, fOut);
         uint32_t TotalEntries = static_cast<uint32_t>(EntryList.size());
-        fwrite(&TotalEntries, sizeof(TotalEntries), 1, fpOut);
+        fwrite(&TotalEntries, sizeof(TotalEntries), 1, fOut);
 
         // directory entry
         uint32_t offset = 4096; // start offset
         size_t index = 0;
         for (EntryInfo &e : EntryList)
         {
-            // read data from file
-            fseek(fpIn, e.Offset*2048, 0);
-            size_t size = e.Size*2048;
+            size_t size = 0;
+            FILE *fFile = NULL;
+            if (e.bImported)
+            {
+                // read data from file
+                fFile = fopen(e.Path.c_str(), "rb");
+                fseek(fFile, 0, SEEK_END);
+                size = ftell(fFile);
+                fseek(fFile, 0, SEEK_SET);
+            }
+            else
+            {
+                // read data from img
+                fseek(fImg, e.Offset*2048, 0);
+                size = e.Size*2048;
+            }
+
             char *buf = new char[size + 1];
             if (buf)
             {
-                fread(buf, size, 1, fpIn);
+                fread(buf, size, 1, e.bImported? fFile : fImg);
                 e.Offset = offset/2048;
 
-                fseek(fpOut, 8+index*32, 0);
-                fwrite(&e.Offset, sizeof(e.Offset), 1, fpOut);
-                fwrite(&e.Size, sizeof(e.Size), 1, fpOut);
-                fwrite(&e.unused, sizeof(e.unused), 1, fpOut);
-                fwrite(e.FileName, sizeof(e.FileName), 1, fpOut);
+                fseek(fOut, 8+index*32, 0);
+                fwrite(&e.Offset, sizeof(e.Offset), 1, fOut);
+                fwrite(&e.Size, sizeof(e.Size), 1, fOut);
+                fwrite(&e.unused, sizeof(e.unused), 1, fOut);
+                fwrite(e.FileName, sizeof(e.FileName), 1, fOut);
 
-                fseek(fpOut, offset, 0);
-                fwrite(buf, size, 1, fpOut);
+                fseek(fOut, offset, 0);
+                fwrite(buf, size, 1, fOut);
                 delete[] buf;
+            }
+
+            if (fFile)
+            {
+                fclose(fFile);
             }
             
             offset += e.Size*2048; // add the sector for this entry
             ++index;
         }        
     }
-    if (fpIn)
+    if (fImg)
     {
-        fclose(fpIn);
+        fclose(fImg);
     }
-    if (fpOut)
+    if (fOut)
     {
-        fclose(fpOut);
+        fclose(fOut);
     }
 }
