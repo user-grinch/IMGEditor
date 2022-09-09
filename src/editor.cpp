@@ -437,7 +437,21 @@ void Editor::ProcessWindow()
                     ); 
                 }
                 ImGui::SameLine();
-                ImGui::Button("Dump list", sz);
+                if (ImGui::Button("Dump list", sz))
+                {
+                    FILE *fp = fopen(std::format("C:/Users/User/Desktop/{}.txt", pSelectedArchive->FileName).c_str(), "w");
+                    if (fp)
+                    {
+                        fprintf(fp, "Dumped list from %s.img\n", pSelectedArchive->FileName.c_str());
+                        fprintf(fp, "Total entries %d\n\n", static_cast<int>(pSelectedArchive->EntryList.size()));
+                        for (EntryInfo &e : pSelectedArchive->EntryList)
+                        {   
+                            fprintf(fp, "%s\n", e.FileName);
+                        }
+                        pSelectedArchive->AddLogMessage("Dumped to desktop");
+                        fclose(fp);
+                    }
+                }
                 ImGui::Spacing();
                 
                 if (ImGui::BeginTable("Log", 1, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders))
