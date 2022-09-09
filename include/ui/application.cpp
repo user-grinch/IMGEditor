@@ -50,6 +50,7 @@ void Ui::Application::Run()
         }
         if (exit)
         {
+            Info.CleanupFunc();
             break;
         }
 

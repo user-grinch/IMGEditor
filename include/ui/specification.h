@@ -15,7 +15,8 @@ namespace Ui
         std::string Name = "Untitled Window";
         CVector2 Pos = { 200, 200 };
         CVector2 Size = { 600, 400 };
-        std::function<void()> LayerFunc = nullptr, MenuBarFunc = nullptr, PopupFunc = nullptr;
+        std::function<void()> LayerFunc = nullptr, MenuBarFunc = nullptr, PopupFunc = nullptr,
+                            CleanupFunc = nullptr;
     };
 }
 

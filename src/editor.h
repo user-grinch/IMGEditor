@@ -1,6 +1,7 @@
 #pragma once
 #include "ui/application.h"
 #include "imgmgr.h"
+#include "SimpleIni.h"
 
 class Editor
 {
@@ -9,6 +10,7 @@ private:
     static inline IMGArchive* pSelectedArchive;         // pointer to the selected archive in editor
     static inline EntryInfo *pContextEntry = nullptr;  // pointer to the selected archive entry in editor
     static inline Ui::Application *pApp = nullptr;
+    static inline CSimpleIniA Config;
 
     // Popups
     static void AboutPopUp();
@@ -28,4 +30,7 @@ public:
 
     // Initializes & runs the IMGEditor
     static void Run();
+
+    // Does cleanup for the editor
+    static void Shutdown();
 };

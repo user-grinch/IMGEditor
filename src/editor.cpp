@@ -10,20 +10,29 @@ void Editor::AboutPopUp()
     ImGui::Text("Author: Grinch_");
     ImGui::Text("Version: " MENU_VERSION);
     ImGui::Spacing();
+    ImGui::NextColumn();
+    ImGui::Text("ImGui: %s", ImGui::GetVersion());
+    ImGui::Text("Build: %s", __DATE__ );
+    ImGui::Columns(1);
+    
+    ImGui::Dummy(ImVec2(0, 10));
+    Widget::TextCentered("Credits");
+    ImGui::Columns(2, NULL, false);
+    ImGui::Text("ImGui");
+    ImGui::NextColumn();
+    ImGui::Text("SimpleINI");
+    ImGui::Columns(1);
+    ImGui::Dummy(ImVec2(0, 10));
 
     if (ImGui::Button("GitHub", Widget::CalcSize(2)))
     {
         ShellExecute(nullptr, "open", "https://github.com/user-grinch/IMGEditor/", nullptr, nullptr, SW_SHOWNORMAL);
     }
-    ImGui::NextColumn();
-    ImGui::Text("ImGui: %s", ImGui::GetVersion());
-    ImGui::Text("Build: %s", __DATE__ );
-    ImGui::Spacing();
+    ImGui::SameLine();
     if (ImGui::Button("Patreon", Widget::CalcSize(2)))
     {
         ShellExecute(nullptr, "open", "https://www.patreon.com/grinch_", nullptr, nullptr, SW_SHOWNORMAL);
     }
-    ImGui::Columns(1);
     ImGui::Spacing();
     ImGui::Text("Copyright Grinch_ 2022. All rights reserved.");
 }
@@ -512,15 +521,34 @@ void Editor::AddArchiveEntry(IMGArchive &&archive)
 
 void Editor::Run()
 {
+    Config.LoadFile("IMGEditor.ini");
+    bool firstLaunch = Config.GetBoolValue("MAIN", "FirstLaunch", true);
+    Ui::eTheme theme = static_cast<Ui::eTheme>(Config.GetLongValue("MAIN", "Theme", 
+                    static_cast<long>(Ui::eTheme::SystemDefault)));
+
     Ui::Specification spec;
     spec.Name = "IMG Editor v" MENU_VERSION;
     spec.MenuBarFunc = ProcessMenuBar;
     spec.Size = { 700, 500 };
 
     spec.LayerFunc = ProcessWindow;
-    spec.PopupFunc = WelcomePopup;
+    spec.PopupFunc = firstLaunch ? WelcomePopup : nullptr;
+    spec.CleanupFunc = Shutdown;
     pApp = new Ui::Application(spec);
+    pApp->SetTheme(theme);
     pApp->Run();
+}
+
+void Editor::Shutdown()
+{
+    FILE *fp = fopen("./IMGEditor.ini", "wb");
+    if (fp)
+    {
+        Config.SetBoolValue("MAIN", "FirstLaunch", false);
+        Config.SetLongValue("MAIN", "Theme", static_cast<long>(pApp->GetTheme()));
+        Config.SaveFile(fp);
+        fclose(fp);
+    }
 }
 
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
