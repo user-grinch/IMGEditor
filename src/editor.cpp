@@ -35,7 +35,7 @@ void Editor::AboutPopUp()
         ShellExecute(nullptr, "open", "https://www.patreon.com/grinch_", nullptr, nullptr, SW_SHOWNORMAL);
     }
     ImGui::Spacing();
-    ImGui::Text("Copyright Grinch_ 2022. All rights reserved.");
+    ImGui::Text("Copyright Grinch_ 2022-2023. All rights reserved.");
 }
 
 void Editor::WelcomePopup()
@@ -463,6 +463,7 @@ void Editor::ProcessWindow()
                 ImGui::SameLine();
                 if (ImGui::Button("Dump list", sz))
                 {
+                    
                     FILE *fp = fopen(std::format("C:/Users/User/Desktop/{}.txt", pSelectedArchive->FileName).c_str(), "w");
                     if (fp)
                     {

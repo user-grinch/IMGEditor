@@ -17,7 +17,8 @@ workspace "IMGEditor"
     kind "WindowedApp"
     
     includedirs {
-        "../include/"
+        "../include/",
+        "../resource/"
     }
     
     libdirs {
@@ -28,7 +29,8 @@ project "depend"
     kind "StaticLib"
 
     files { 
-        "../include/**"
+        "../include/**",
+        "../resource/**"
     }
 
     filter "configurations:Debug"
@@ -47,7 +49,8 @@ project "IMGEditorApp"
     }
 
     files { 
-        "../src/**"
+        "../src/**",
+        "../resource/*.rc"
     }
 
     pchheader "pch.h"
