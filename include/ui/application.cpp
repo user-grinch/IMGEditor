@@ -17,6 +17,11 @@ void Ui::Application::SetPopup(std::function<void()> Func)
     Info.PopupFunc = Func;
 }
 
+Ui::CVector2 Ui::Application::GetWindowSize()
+{
+    return Info.Size;
+}
+
 void Ui::Application::Run()
 {
     bool exit = false;

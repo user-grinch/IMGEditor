@@ -288,7 +288,7 @@ void Ui::Renderer::DrawLayer(Specification &Spec)
         RECT rect;
         GetWindowRect(hwnd, &rect);
         float width = static_cast<float>(rect.right - rect.left - ImGui::GetStyle().WindowPadding.x*2);
-        float height = static_cast<float>(rect.bottom - rect.top - start - ImGui::GetStyle().WindowPadding.y*5);
+        float height = static_cast<float>(rect.bottom - rect.top - start - ImGui::GetStyle().WindowPadding.y*4.5);
 
         ImGui::SetNextWindowPos(ImVec2(0, start), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(width, height), ImGuiCond_Always);

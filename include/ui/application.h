@@ -13,6 +13,8 @@ namespace Ui
         Application(Specification &Spec);
         ~Application();
         
+        CVector2 GetWindowSize();
+
         // Start the application loop
         void Run();
 

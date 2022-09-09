@@ -166,7 +166,15 @@ void Editor::ProcessContextMenu()
         return;
     }
 
+    // Restrict showing context menu outside window
+    // ImGui::SetNextWindowPosConstraints()
+    static float height = 0.0f;
     ImVec2 pos = ImGui::GetMousePos();
+    float windowMaxY = pApp->GetWindowSize().y / 1.1f;
+    if (pos.y + height > windowMaxY)
+    {
+        pos.y = windowMaxY - height;
+    }
     ImGui::SetNextWindowPos(pos, ImGuiCond_Appearing);
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove;
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.5f);
@@ -212,13 +220,14 @@ void Editor::ProcessContextMenu()
             ImGui::SetClipboardText(pContextEntry->FileName);
             pContextEntry = nullptr;
         }
-
-        if (ImGui::MenuItem("Close"))
+        height = ImGui::GetWindowHeight();
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsWindowHovered())
         {
             pContextEntry = nullptr;
         }
         ImGui::End();
     }
+    
     ImGui::PopStyleVar();
 }
 
@@ -265,7 +274,8 @@ void Editor::ProcessWindow()
                             {
                                 ImGui::SetNextItemWidth(ImGui::GetColumnWidth());
                                 ImGui::InputText("##Rename", entry.FileName, sizeof(entry.FileName));
-                                if (ImGui::IsKeyPressed(VK_RETURN))
+                                if (ImGui::IsKeyPressed(VK_RETURN) 
+                                || (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsItemHovered()))
                                 {
                                     entry.bRename = false;
                                 }
