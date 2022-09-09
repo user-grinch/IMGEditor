@@ -18,6 +18,7 @@ void Editor::AboutPopUp()
     ImGui::Dummy(ImVec2(0, 10));
     Widget::TextCentered("Credits");
     ImGui::Columns(2, NULL, false);
+    ImGui::Text("Freetype");
     ImGui::Text("ImGui");
     ImGui::NextColumn();
     ImGui::Text("SimpleINI");
@@ -49,8 +50,14 @@ void Editor::WelcomePopup()
     ImGui::Text("2. GTA VC");
     ImGui::Text("3. GTA SA");
     ImGui::Text("4. Fastman92's format");
-
     ImGui::Spacing();
+    ImGui::TextWrapped("Directly open archives in IMG Editor by windows modifying file association.");
+    ImGui::Spacing();
+    if (ImGui::Button("File association help",  Widget::CalcSize(1)))
+    {
+        ShellExecute(nullptr, "open", "https://www.google.com/search?q=windows+set+file+associations", nullptr, nullptr, SW_SHOWNORMAL);
+    }
+     ImGui::Spacing();
     if (ImGui::Button("GitHub", Widget::CalcSize(2)))
     {
         ShellExecute(nullptr, "open", "https://github.com/user-grinch/IMGEditor/", nullptr, nullptr, SW_SHOWNORMAL);
@@ -61,7 +68,7 @@ void Editor::WelcomePopup()
         ShellExecute(nullptr, "open", "https://www.patreon.com/grinch_", nullptr, nullptr, SW_SHOWNORMAL);
     }
     ImGui::Spacing();
-    ImGui::Text("Copyright Grinch_ 2022. All rights reserved.");
+    ImGui::Text("Copyright Grinch_ 2022-2023. All rights reserved.");
 }
 
 
@@ -297,7 +304,7 @@ void Editor::ProcessWindow()
                     ImGui::TableHeadersRow();
 
                     static ImGuiListClipper clipper;
-                    clipper.Begin(archive.EntryList.size(), ImGui::GetTextLineHeight());
+                    clipper.Begin(static_cast<int>(archive.EntryList.size()), ImGui::GetTextLineHeight());
                     while (clipper.Step())
                     {
                         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
@@ -532,7 +539,13 @@ void Editor::AddArchiveEntry(IMGArchive &&archive)
 
 void Editor::Run()
 {
-    Config.LoadFile("IMGEditor.ini");
+    // std::string::data() doesn't work here?
+    char buf[MAX_PATH];
+    GetModuleFileName(NULL, buf, MAX_PATH);
+    ConfigPath = buf;
+    ConfigPath.replace(ConfigPath.end()-3, ConfigPath.end(), "ini");
+    Config.LoadFile(ConfigPath.c_str());
+
     bool firstLaunch = Config.GetBoolValue("MAIN", "FirstLaunch", true);
     Ui::eTheme theme = static_cast<Ui::eTheme>(Config.GetLongValue("MAIN", "Theme", 
                     static_cast<long>(Ui::eTheme::SystemDefault)));
@@ -552,7 +565,7 @@ void Editor::Run()
 
 void Editor::Shutdown()
 {
-    FILE *fp = fopen("./IMGEditor.ini", "wb");
+    FILE *fp = fopen(ConfigPath.c_str(), "wb");
     if (fp)
     {
         Config.SetBoolValue("MAIN", "FirstLaunch", false);
@@ -564,6 +577,21 @@ void Editor::Shutdown()
 
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
+    // remove quotes
+    for (size_t i = 0; i < MAX_PATH; ++i)
+    {
+        if (lpCmdLine[i] =='\0')
+        {
+            break;
+        }
+        if (lpCmdLine[i] =='"')
+        {
+            lpCmdLine[i] = '\0';
+        }
+    }
+    
+    bool exists = std::filesystem::exists(&lpCmdLine[1]);    
+    Editor::AddArchiveEntry(exists ? IMGArchive(&lpCmdLine[1]) : IMGArchive("Untitled", true));
     Editor::Run();
     return 0;
 }
