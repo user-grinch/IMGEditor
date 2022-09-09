@@ -19,6 +19,10 @@ workspace "IMGEditor"
     includedirs {
         "../include/"
     }
+    
+    libdirs {
+        "../lib/"
+    }
 
 project "depend"
     kind "StaticLib"

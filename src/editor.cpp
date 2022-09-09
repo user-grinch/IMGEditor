@@ -12,7 +12,7 @@ void Editor::AboutPopUp()
     ImGui::Spacing();
     ImGui::NextColumn();
     ImGui::Text("ImGui: %s", ImGui::GetVersion());
-    ImGui::Text("Build: %s", __DATE__ );
+    ImGui::Text("Build: %s", __DATE__);
     ImGui::Columns(1);
     
     ImGui::Dummy(ImVec2(0, 10));
