@@ -1,6 +1,7 @@
 #pragma once
 #include "specification.h"
 #include "imgui/imgui.h"
+#include "renderer.h"
 
 namespace Ui
 {
@@ -14,6 +15,12 @@ namespace Ui
         ~Application();
         
         CVector2 GetWindowSize();
+
+        // Returns the active thememode
+        eTheme GetTheme();
+
+        // Sets the current theme 
+        void SetTheme(eTheme theme);
 
         // Start the application loop
         void Run();

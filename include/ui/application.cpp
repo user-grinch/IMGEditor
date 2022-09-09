@@ -22,6 +22,16 @@ Ui::CVector2 Ui::Application::GetWindowSize()
     return Info.Size;
 }
 
+Ui::eTheme Ui::Application::GetTheme()
+{
+    return Ui::Renderer::GetThemeMode();
+}
+
+void Ui::Application::SetTheme(Ui::eTheme theme)
+{
+    Ui::Renderer::SetThemeMode(theme);
+}
+
 void Ui::Application::Run()
 {
     bool exit = false;

@@ -248,6 +248,37 @@ LRESULT WINAPI Ui::Renderer::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
     return ::DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
+void Ui::Renderer::ProcessThemes()
+{
+    BOOL useDarkMode = TRUE;
+    bool isLightMode = IsLightTheme();
+    static bool prevIsLightMode = !isLightMode;
+    static Ui::eTheme prevTheme = eTheme::SystemDefault;
+
+    // run once on change
+    if (isLightMode != prevIsLightMode || prevTheme != Theme)
+    {
+        if ((isLightMode && Theme == eTheme::SystemDefault) || Theme == eTheme::Light)
+        {
+            useDarkMode = FALSE;
+            DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &useDarkMode, sizeof(useDarkMode));
+            ApplyLightTheme();
+        }
+        else
+        {
+            DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &useDarkMode, sizeof(useDarkMode));
+            ApplyDarkTheme();
+        }
+
+        ShowWindow(hwnd, false);
+        UpdateWindow(hwnd);
+        ShowWindow(hwnd, true);
+
+        prevIsLightMode = isLightMode;
+        prevTheme = Theme;
+    }
+}
+
 void Ui::Renderer::DrawLayer(Specification &Spec)
 {
     if (!hwnd)
@@ -255,20 +286,7 @@ void Ui::Renderer::DrawLayer(Specification &Spec)
         return;
     }
 
-    BOOL useDarkMode = TRUE;
-    if (IsLightTheme())
-    {
-        useDarkMode = FALSE;
-        DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &useDarkMode, sizeof(useDarkMode));
-        ApplyLightTheme();
-    }
-    else
-    {
-        
-        DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &useDarkMode, sizeof(useDarkMode));
-        ApplyDarkTheme();
-    }
-
+    ProcessThemes();
     ImGui_ImplDX9_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
@@ -385,6 +403,16 @@ void Ui::Renderer::Init(const Specification &Spec)
 
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX9_Init(pd3dDevice);
+}
+
+void Ui::Renderer::SetThemeMode(eTheme themeMode)
+{
+    Theme = themeMode;
+}
+
+Ui::eTheme Ui::Renderer::GetThemeMode()
+{
+    return Theme;
 }
 
 void Ui::Renderer::Shutdown()

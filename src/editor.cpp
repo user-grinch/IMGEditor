@@ -135,6 +135,30 @@ void Editor::ProcessMenuBar()
         }
         ImGui::EndMenu();
     }
+    if (ImGui::BeginMenu("Option"))
+    {
+        if (ImGui::BeginMenu("Theme", true))
+        {
+            Ui::eTheme theme = pApp->GetTheme();
+            bool state = (theme == Ui::eTheme::Dark);
+            if (ImGui::MenuItem("Dark theme", NULL, &state))
+            {
+                pApp->SetTheme(Ui::eTheme::Dark);
+            }
+            state = (theme == Ui::eTheme::Light);
+            if (ImGui::MenuItem("Light theme", NULL, &state))
+            {
+                pApp->SetTheme(Ui::eTheme::Light);
+            }
+            state = (theme == Ui::eTheme::SystemDefault);
+            if (ImGui::MenuItem("System default", NULL, &state))
+            {
+                pApp->SetTheme(Ui::eTheme::SystemDefault);
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenu();
+    }
     if (ImGui::BeginMenu("Help"))
     {
         if (ImGui::MenuItem("Check for update"))

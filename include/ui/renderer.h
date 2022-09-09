@@ -11,6 +11,13 @@ namespace Ui
         CreationSuccess,
     };
 
+    enum class eTheme
+    {
+        Light,
+        Dark,
+        SystemDefault
+    };
+
     class Renderer
     {
     private:
@@ -19,6 +26,7 @@ namespace Ui
         static inline D3DPRESENT_PARAMETERS d3dpp = {};
         static inline HWND hwnd = NULL;
         static inline WNDCLASSEX wc = {};
+        static inline eTheme Theme = eTheme::SystemDefault;
 
         // DirectX functions
         static eDeviceState CreateDevice(HWND hWnd);
@@ -32,6 +40,7 @@ namespace Ui
         // Apply ImGui themes
         static void ApplyLightTheme();
         static void ApplyDarkTheme();
+        static void ProcessThemes();
 
     public:
         // Draws a ui layer on window
@@ -39,6 +48,12 @@ namespace Ui
 
         // Inits the device
         static void Init(const Specification &Spec);
+
+        // Returns the active thememode
+        static eTheme GetThemeMode();
+
+        // Sets the current theme 
+        static void SetThemeMode(eTheme theme);
 
         // Closes the device & window
         static void Shutdown();
