@@ -295,87 +295,95 @@ void Editor::ProcessWindow()
                     ImGui::TableSetupColumn("Offset", ImGuiTableColumnFlags_WidthFixed, 50);
                     ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, 50);
                     ImGui::TableHeadersRow();
-                    for (EntryInfo &entry : archive.EntryList)
-                    {
-                        if (filter.PassFilter(entry.FileName))
-                        {
-                            ImGui::TableNextRow();
-                            ImGui::TableNextColumn();
 
-                            // Renaming system
-                            if (entry.bRename)
+                    static ImGuiListClipper clipper;
+                    clipper.Begin(archive.EntryList.size(), ImGui::GetTextLineHeight());
+                    while (clipper.Step())
+                    {
+                        for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
+                        {
+                            EntryInfo &entry = archive.EntryList[i];
+                            if (filter.PassFilter(entry.FileName))
                             {
-                                ImGui::SetNextItemWidth(ImGui::GetColumnWidth());
-                                ImGui::InputText("##Rename", entry.FileName, sizeof(entry.FileName));
-                                if (ImGui::IsKeyPressed(VK_RETURN) 
-                                || (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsItemHovered()))
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+
+                                // Renaming system
+                                if (entry.bRename)
                                 {
-                                    entry.bRename = false;
-                                }
-                            }
-                            else
-                            {
-                                bool styleApplied = false;
-                                if (entry.bSelected)
-                                {
-                                    ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-                                    styleApplied = true;
-                                }
-                                if (ImGui::Selectable(entry.FileName, entry.bSelected))
-                                {
-                                    // selection & renanme disable
-                                    bool prevSelected = false;
-                                    for (EntryInfo &e : archive.EntryList)
+                                    ImGui::SetNextItemWidth(ImGui::GetColumnWidth());
+                                    ImGui::InputText("##Rename", entry.FileName, sizeof(entry.FileName));
+                                    if (ImGui::IsKeyPressed(VK_RETURN) 
+                                    || (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsItemHovered()))
                                     {
-                                        // allow shift multiselect
-                                        ImVec2 min = ImGui::GetItemRectMin();
-                                        if (ImGui::IsKeyDown(VK_LSHIFT) || ImGui::IsKeyDown(VK_RSHIFT))
+                                        entry.bRename = false;
+                                    }
+                                }
+                                else
+                                {
+                                    bool styleApplied = false;
+                                    if (entry.bSelected)
+                                    {
+                                        ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+                                        styleApplied = true;
+                                    }
+                                    if (ImGui::Selectable(entry.FileName, entry.bSelected))
+                                    {
+                                        // selection & renanme disable
+                                        bool prevSelected = false;
+                                        for (EntryInfo &e : archive.EntryList)
                                         {
-                                            if (prevSelected)
+                                            // allow shift multiselect
+                                            ImVec2 min = ImGui::GetItemRectMin();
+                                            if (ImGui::IsKeyDown(VK_LSHIFT) || ImGui::IsKeyDown(VK_RSHIFT))
                                             {
-                                                e.bSelected = true;
-                                            }
-                                            if (!strcmp(e.FileName, entry.FileName))
-                                            {
-                                                prevSelected = false;
+                                                if (prevSelected)
+                                                {
+                                                    e.bSelected = true;
+                                                }
+                                                if (!strcmp(e.FileName, entry.FileName))
+                                                {
+                                                    prevSelected = false;
+                                                }
+                                                else
+                                                {
+                                                    prevSelected = e.bSelected;
+                                                }
                                             }
                                             else
                                             {
-                                                prevSelected = e.bSelected;
+                                                // allow multiselect when ctrl is pressed
+                                                if (!(ImGui::IsKeyDown(VK_LCONTROL) || ImGui::IsKeyDown(VK_RCONTROL)))
+                                                {
+                                                    e.bSelected  = false;
+                                                }
                                             }
+                                            e.bRename  = false;
                                         }
-                                        else
-                                        {
-                                            // allow multiselect when ctrl is pressed
-                                            if (!(ImGui::IsKeyDown(VK_LCONTROL) || ImGui::IsKeyDown(VK_RCONTROL)))
-                                            {
-                                                e.bSelected  = false;
-                                            }
-                                        }
-                                        e.bRename  = false;
+                                        entry.bSelected = true;
                                     }
-                                    entry.bSelected = true;
+
+                                    if (styleApplied)
+                                    {
+                                        ImGui::PopStyleColor();
+                                        styleApplied = false;
+                                    }
+                                    if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                                    {
+                                        pContextEntry = pContextEntry ? nullptr : &entry;
+                                    }
                                 }
 
-                                if (styleApplied)
-                                {
-                                    ImGui::PopStyleColor();
-                                    styleApplied = false;
-                                }
-                                if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
-                                {
-                                    pContextEntry = pContextEntry ? nullptr : &entry;
-                                }
+                                ImGui::TableNextColumn();
+                                ImGui::Text(entry.Type.c_str());
+                                ImGui::TableNextColumn();
+                                ImGui::Text(std::format("0x{:X}", entry.Offset).c_str());
+                                ImGui::TableNextColumn();
+                                ImGui::Text("%d kb", entry.Size*2);
                             }
-
-                            ImGui::TableNextColumn();
-                            ImGui::Text(entry.Type.c_str());
-                            ImGui::TableNextColumn();
-                            ImGui::Text(std::format("0x{:X}", entry.Offset).c_str());
-                            ImGui::TableNextColumn();
-                            ImGui::Text("%d kb", entry.Size*2);
                         }
                     }
+                    clipper.End();
                     ProcessContextMenu();
                     ImGui::EndTable();
                 }
@@ -461,6 +469,9 @@ void Editor::ProcessWindow()
                         fclose(fp);
                     }
                 }
+                ImGui::Spacing();
+                ImGui::Text("Framerate: %.2f", ImGui::GetIO().Framerate);
+                ImGui::Text("IMG format: 2 (SA)");
                 ImGui::Spacing();
                 
                 if (ImGui::BeginTable("Log", 1, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders))
