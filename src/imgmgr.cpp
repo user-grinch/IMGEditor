@@ -1,8 +1,9 @@
 #include "pch.h"
 #include "imgmgr.h"
+#include "imgparser.h"
 #include <filesystem>
 
-IMGArchive::IMGArchive(std::string Path, bool CreateNew)
+IMGMgr::IMGMgr(std::string Path, bool CreateNew)
 {
     if (CreateNew)
     {
@@ -12,40 +13,16 @@ IMGArchive::IMGArchive(std::string Path, bool CreateNew)
     }
     else
     {
-        if (std::filesystem::exists(Path))
+        this->Path = Path;
+        IParser *parser = GetParser(eImgVer::One);
+        if (parser)
         {
-            this->Path = Path;
-            this->FileName = std::move(std::filesystem::path(Path).filename().stem().string());
-            FILE *fp = fopen(Path.c_str(), "rb");
-            if (fp)
-            {
-                char ver[4];
-                fread(ver, sizeof(ver), 1, fp);
-                if (ver[0] == 'V' && ver[1] == 'E' && ver[2] == 'R' && ver[3] == '2')
-                {
-                    uint32_t TotalEntries;
-                    fread(&TotalEntries, sizeof(TotalEntries), 1, fp);
-
-                    for (unsigned int i = 0; i < TotalEntries; ++i)
-                    {
-                        EntryInfo entry;
-                        fread(&entry.Offset, sizeof(entry.Offset), 1, fp);
-                        fread(&entry.Size, sizeof(entry.Size), 1, fp);
-                        fread(&entry.unused, sizeof(entry.unused), 1, fp);
-                        fread(entry.FileName, sizeof(entry.FileName), 1, fp);
-
-                        entry.Type = GetFileType(entry.FileName);
-                        EntryList.push_back(std::move(entry));
-                    }
-                }
-            }
-            fclose(fp);
+            parser->Open(this);
         }
-        AddLogMessage("Opened archive");
     }
 } 
 
-std::string IMGArchive::GetFileType(const char* name)
+std::string IMGMgr::GetFileType(const char* name)
 {
     std::string type = "Unknown";
     if (strstr(name, ".dff")) type = "Model";
@@ -58,40 +35,16 @@ std::string IMGArchive::GetFileType(const char* name)
     return type;
 }
 
-void IMGArchive::ExportEntry(EntryInfo *pEntry, std::string filePath, bool log)
+void IMGMgr::ExportEntry(EntryInfo *pEntry, std::string filePath, bool log)
 {
-    FILE *pOut = fopen(filePath.c_str(), "wb+");
-    FILE *pImg = fopen(Path.c_str(), "rb");
-
-    if (pOut && pImg)
+    IParser *parser = GetParser(eImgVer::One);
+    if (parser)
     {
-        fseek(pImg, pEntry->Offset*2048, 0);
-        size_t size = pEntry->Size*2048;
-        char *buf = new char[size + 1];
-        if (buf)
-        {
-            fread(buf, size, 1, pImg);
-            fwrite(buf, size, 1, pOut);
-            if (log)
-            {
-                AddLogMessage(std::format("Exported {}", pEntry->FileName));
-            }
-            buf[pEntry->Size] ='\0';
-            
-            delete[] buf;
-        }
-    }
-    if (pImg)
-    {
-        fclose(pImg);
-    }
-    if (pOut)
-    {
-        fclose(pOut);
+        parser->Export(this, pEntry, filePath, log);
     }
 }
 
-void IMGArchive::ExportAll(ArchiveInfo *pInfo)
+void IMGMgr::ExportAll(ArchiveInfo *pInfo)
 {
     pInfo->pArc->ProgressBar.bInUse = true;
     size_t total =  pInfo->pArc->EntryList.size();
@@ -113,7 +66,7 @@ void IMGArchive::ExportAll(ArchiveInfo *pInfo)
     delete pInfo;
 }
 
-void IMGArchive::ExportSelected(ArchiveInfo *pInfo)
+void IMGMgr::ExportSelected(ArchiveInfo *pInfo)
 {
     pInfo->pArc->ProgressBar.bInUse = true;
     size_t total =  pInfo->pArc->EntryList.size();
@@ -138,50 +91,16 @@ void IMGArchive::ExportSelected(ArchiveInfo *pInfo)
     delete pInfo;
 }
 
-void IMGArchive::ImportEntry(const std::string &path, bool replace)
+void IMGMgr::ImportEntry(const std::string &path, bool replace)
 {
-    std::filesystem::path p {path};
-
-    // skip folder paths
-    if (p.extension() == "")
+    IParser *parser = GetParser(eImgVer::One);
+    if (parser)
     {
-        return;
+        parser->Import(this, path, replace);
     }
-
-    std::string name = p.filename().string();
-
-    if (name.size() > 23)
-    {
-        AddLogMessage(std::format("Skipping {}. Name too large.", name));
-        return;
-    }
-
-    if (replace)
-    {
-        EntryList.erase (
-            std::remove_if (
-                EntryList.begin(), 
-                EntryList.end(), 
-                [&](EntryInfo const& obj) {
-                    return obj.FileName == name;
-                }
-            ), 
-            EntryList.end()
-        );
-    }
-
-    EntryInfo info;
-    strcpy(info.FileName, name.c_str());
-    info.FileName[23] = '\0';
-    info.Path = path;
-    info.bImported = true;
-    info.Type = GetFileType(info.FileName);
-    info.Size = static_cast<uint16_t>(std::filesystem::file_size(path))/2048; // bytes -> sector
-    EntryList.push_back(std::move(info));
-    AddLogMessage(std::format("Imported {}", name));
 }
 
-void IMGArchive::ImportEntries(const std::string &path, bool replace)
+void IMGMgr::ImportEntries(const std::string &path, bool replace)
 {
     std::string temp = "";
     for (char c : path)
@@ -204,12 +123,12 @@ void IMGArchive::ImportEntries(const std::string &path, bool replace)
     }
 }
 
-void IMGArchive::AddLogMessage(std::string &&message)
+void IMGMgr::AddLogMessage(std::string &&message)
 {
     LogList.push_back(std::move(message));
 }
 
-bool IMGArchive::IsSupported(const std::string &Path)
+bool IMGMgr::IsSupported(const std::string &Path)
 {
     FILE *fp = fopen(Path.c_str(), "rb");
     if (fp)
@@ -222,109 +141,23 @@ bool IMGArchive::IsSupported(const std::string &Path)
     return false;
 }
 
-void IMGArchive::Rebuild(ArchiveInfo *pInfo)
+void IMGMgr::Rebuild(ArchiveInfo *pInfo)
 {
-    if (pInfo->pArc->Path == "")
+    IParser *parser = GetParser(eImgVer::One);
+    if (parser)
     {
-        return;
+        parser->Save(pInfo);
+    }
+}
+
+IParser* IMGMgr::GetParser(eImgVer version)
+{
+    switch(version)
+    {
+    case eImgVer::One:
+        return ParserV2::Get();
+        break;
     }
 
-    pInfo->pArc->ProgressBar.bInUse = true;
-    std::string tempPath = pInfo->path + ".temp";
-    FILE *fOut = fopen(tempPath.c_str(), "wb");
-    FILE *fImg = fopen(pInfo->pArc->Path.c_str(), "rb");
-
-    if (fOut)
-    {
-        // header
-        fwrite("VER2", 4, 1, fOut);
-        uint32_t TotalEntries = static_cast<uint32_t>(pInfo->pArc->EntryList.size());
-        fwrite(&TotalEntries, sizeof(TotalEntries), 1, fOut);
-
-        // directory entry
-        uint32_t offset = 4096; // start offset
-        size_t index = 0;
-        size_t total = pInfo->pArc->EntryList.size();
-        for (EntryInfo &e : pInfo->pArc->EntryList)
-        {
-            size_t size = 0;
-            FILE *fFile = NULL;
-            if (e.bImported)
-            {
-                // read data from file
-                fFile = fopen(e.Path.c_str(), "rb");
-                fseek(fFile, 0, SEEK_END);
-                size = ftell(fFile);
-                fseek(fFile, 0, SEEK_SET);
-            }
-            else
-            {
-                // read data from img
-                fseek(fImg, e.Offset*2048, 0);
-                size = e.Size*2048;
-            }
-
-            char *buf = new char[size + 1];
-            if (buf)
-            {
-                fread(buf, size, 1, e.bImported? fFile : fImg);
-                e.Offset = offset/2048;
-
-                long pos = 8 + static_cast<long>(index) * 32;
-                fseek(fOut, pos, 0);
-                fwrite(&e.Offset, sizeof(e.Offset), 1, fOut);
-                fwrite(&e.Size, sizeof(e.Size), 1, fOut);
-                fwrite(&e.unused, sizeof(e.unused), 1, fOut);
-                fwrite(e.FileName, sizeof(e.FileName), 1, fOut);
-
-                fseek(fOut, offset, 0);
-                fwrite(buf, size, 1, fOut);
-                delete[] buf;
-            }
-
-            if (fFile)
-            {
-                fclose(fFile);
-            }
-            
-            pInfo->pArc->ProgressBar.Percentage = (static_cast<float>(index)+1)/ static_cast<float>(total);
-
-            if (pInfo->pArc->ProgressBar.bCancel)
-            {
-                pInfo->pArc->ProgressBar.bCancel = false;
-                if (fImg)
-                {
-                    fclose(fImg);
-                }
-                if (fOut)
-                {
-                    fclose(fOut);
-                    remove(tempPath.c_str());
-                }
-                pInfo->pArc->AddLogMessage("Rebuilding failed");
-                pInfo->pArc->ProgressBar.bInUse = false;
-                delete pInfo;
-                return;
-            }
-            
-            offset += e.Size*2048; // add the sector for this entry
-            ++index;
-        }        
-    }
-    if (fImg)
-    {
-        fclose(fImg);
-    }
-    if (fOut)
-    {
-        fclose(fOut);
-        remove(pInfo->pArc->Path.c_str());
-        rename(tempPath.c_str(), pInfo->path.c_str());
-    }
-
-    // update data
-    pInfo->pArc->Path = pInfo->path;
-    pInfo->pArc->FileName = std::move(std::filesystem::path(pInfo->path).filename().stem().string());
-    pInfo->pArc->ProgressBar.bInUse = false;
-    delete pInfo;
+    return nullptr;
 }

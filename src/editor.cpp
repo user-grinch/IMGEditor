@@ -53,7 +53,7 @@ void Editor::WelcomePopup()
     ImGui::Spacing();
     ImGui::TextWrapped("Directly open archives in IMG Editor by windows modifying file association.");
     ImGui::Spacing();
-    if (ImGui::Button("File association help",  Widget::CalcSize(1)))
+    if (ImGui::Button("Help with file association",  Widget::CalcSize(1)))
     {
         ShellExecute(nullptr, "open", "https://www.google.com/search?q=windows+set+file+associations", nullptr, nullptr, SW_SHOWNORMAL);
     }
@@ -74,7 +74,7 @@ void Editor::WelcomePopup()
 
 bool Editor::DoesArchiveExist(const std::string &name)
 {
-    for (IMGArchive &arc : ArchiveList)
+    for (IMGMgr &arc : ArchiveList)
     {
         if (std::string(arc.FileName) == name)
         {
@@ -114,9 +114,9 @@ void Editor::ProcessMenuBar()
 
             if (path != "")
             {
-                if (IMGArchive::IsSupported(path))
+                if (IMGMgr::IsSupported(path))
                 {
-                    AddArchiveEntry(std::move(IMGArchive(std::move(path))));
+                    AddArchiveEntry(std::move(IMGMgr(std::move(path))));
                 }
                 else
                 {
@@ -139,14 +139,14 @@ void Editor::ProcessMenuBar()
                 pSelectedArchive->Path = WinDialogs::SaveFile(pSelectedArchive->FileName + ".img");
             }
             ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, pSelectedArchive->Path};
-            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::Rebuild, info, NULL, NULL);
+            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGMgr::Rebuild, info, NULL, NULL);
             pSelectedArchive->AddLogMessage("Archive saved");
         }
         if (ImGui::MenuItem("Save as...") && !pSelectedArchive->ProgressBar.bInUse)
         {
             std::string path = WinDialogs::SaveFile(pSelectedArchive->FileName + ".img");
             ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
-            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::Rebuild, info, NULL, NULL);
+            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGMgr::Rebuild, info, NULL, NULL);
             pSelectedArchive->AddLogMessage("Archive saved");
         }
         ImGui::EndMenu();
@@ -167,13 +167,13 @@ void Editor::ProcessMenuBar()
         {
             std::string path = WinDialogs::SaveFolder();
             ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
-            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportAll, info, NULL, NULL);
+            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGMgr::ExportAll, info, NULL, NULL);
         }
         if (ImGui::MenuItem("Export selected", NULL, false, !pSelectedArchive->ProgressBar.bInUse))
         {
             std::string path = WinDialogs::SaveFolder();
             ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
-            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportSelected, info, NULL, NULL);
+            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGMgr::ExportSelected, info, NULL, NULL);
         }
         ImGui::EndMenu();
     }
@@ -306,7 +306,7 @@ void Editor::ProcessWindow()
     pSelectedArchive = nullptr;
     if (ImGui::BeginTabBar("Archives", tabFlags))
     {
-        for (IMGArchive &archive : ArchiveList)
+        for (IMGMgr &archive : ArchiveList)
         {  
             if (ImGui::BeginTabItem(archive.FileName.c_str(), &archive.bOpen))
             {
@@ -457,7 +457,7 @@ void Editor::ProcessWindow()
                 {
                     std::string path = WinDialogs::SaveFolder();
                     ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
-                    CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportAll, info, NULL, NULL);
+                    CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGMgr::ExportAll, info, NULL, NULL);
                 }
                 if (ImGui::Button("Select all", sz))
                 {
@@ -541,7 +541,7 @@ void Editor::ProcessWindow()
                         ArchiveList.begin(), 
                         ArchiveList.end(), 
                         
-                        [&archive](IMGArchive const& obj) {
+                        [&archive](IMGMgr const& obj) {
                             return obj.bCreateNew ? obj.FileName == archive.FileName : obj.Path == archive.Path;
                         }
                     ), 
@@ -554,9 +554,9 @@ void Editor::ProcessWindow()
     }
 }
 
-void Editor::AddArchiveEntry(IMGArchive &&archive)
+void Editor::AddArchiveEntry(IMGMgr &&archive)
 {
-    for (IMGArchive &arc : ArchiveList)
+    for (IMGMgr &arc : ArchiveList)
     {
         if (arc.Path == archive.Path)
         {
@@ -629,7 +629,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     }
     
     bool exists = std::filesystem::exists(&lpCmdLine[1]);    
-    Editor::AddArchiveEntry(exists ? IMGArchive(&lpCmdLine[1]) : IMGArchive("Untitled", true));
+    Editor::AddArchiveEntry(exists ? IMGMgr(&lpCmdLine[1]) : IMGMgr("Untitled", true));
     Editor::Run();
     return 0;
 }

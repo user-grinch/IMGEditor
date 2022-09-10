@@ -3,6 +3,13 @@
 #include <vector>
 #include <functional>
 
+enum class eImgVer
+{
+    One,        // GTA III, VC, BULLY
+    Two,        // GTA SA
+    Fastman92,  // GTA SA with FLA
+};
+
 /*
     Contains information about each entry in the archive
     TODO: Add 3, VC & Fastman92's img support
@@ -30,11 +37,12 @@ struct ProgressInfo
     bool bInUse = false;
 };
 
-class IMGArchive;
+class IMGMgr;
+extern class IParser;
 
 struct ArchiveInfo
 {
-    IMGArchive* pArc;
+    IMGMgr* pArc;
     std::string path;
 };
 
@@ -42,7 +50,7 @@ struct ArchiveInfo
     Wrapper class for archives
     Contains helper functions for processing the img
 */
-class IMGArchive
+class IMGMgr
 {
 public:
     std::string Path;
@@ -54,7 +62,7 @@ public:
     bool bOpen = true;
     bool bCreateNew;
 
-    IMGArchive(std::string Path, bool CreateNew = false);
+    IMGMgr(std::string Path, bool CreateNew = false);
 
     // Adds a new message to log
     void AddLogMessage(std::string &&message);
@@ -70,6 +78,9 @@ public:
 
     // Get file type
     static std::string GetFileType(const char* name);
+
+    // Returns the appropriate parser for IMG Type
+    static IParser* GetParser(eImgVer version);
 
     // Import entity
     void ImportEntry(const std::string& path, bool replace = false);
