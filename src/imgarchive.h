@@ -8,6 +8,7 @@ enum class eImgVer
     One,        // GTA III, VC, BULLY
     Two,        // GTA SA
     Fastman92,  // GTA SA with FLA
+    Unknown,
 };
 
 /*
@@ -18,8 +19,7 @@ struct EntryInfo
 {
     // archive data
     uint32_t Offset     = 0;        // in sectors (each sector is 2048 bytes)
-    uint16_t Size       = 0;        // in sectors (each sector is 2048 bytes)
-    uint16_t unused     = 0;
+    uint32_t Size       = 0;        // in sectors (each sector is 2048 bytes)
     char FileName[24];              // file name in the archive
 
     // editor data
@@ -37,12 +37,12 @@ struct ProgressInfo
     bool bInUse = false;
 };
 
-class IMGMgr;
-extern class IParser;
+class IMGArchive;
+class IParser;
 
 struct ArchiveInfo
 {
-    IMGMgr* pArc;
+    IMGArchive* pArc;
     std::string path;
 };
 
@@ -50,7 +50,7 @@ struct ArchiveInfo
     Wrapper class for archives
     Contains helper functions for processing the img
 */
-class IMGMgr
+class IMGArchive
 {
 public:
     std::string Path;
@@ -58,11 +58,13 @@ public:
     std::vector<EntryInfo> EntryList;
     std::vector<std::string> LogList;
     ProgressInfo ProgressBar;
+    eImgVer ImageVersion = eImgVer::Unknown;
+    IParser *Parser = nullptr;
 
     bool bOpen = true;
     bool bCreateNew;
 
-    IMGMgr(std::string Path, bool CreateNew = false);
+    IMGArchive(std::string Path, bool CreateNew = false);
 
     // Adds a new message to log
     void AddLogMessage(std::string &&message);
@@ -79,8 +81,8 @@ public:
     // Get file type
     static std::string GetFileType(const char* name);
 
-    // Returns the appropriate parser for IMG Type
-    static IParser* GetParser(eImgVer version);
+    // Returns archive version 
+    static eImgVer GetVersion(const std::string &archivePath);
 
     // Import entity
     void ImportEntry(const std::string& path, bool replace = false);
@@ -88,9 +90,6 @@ public:
     // Imports multiple file entries at once
     void ImportEntries(const std::string& filePaths, bool replace = false);
 
-    // Returns true if archive is supported(v2)
-    static bool IsSupported(const std::string &Path);
-
     // Rebuilds the IMG archive, save changes
-    static void Rebuild(ArchiveInfo *pInfo);
+    static void Save(ArchiveInfo *pInfo);
 };

@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "imgmgr.h"
+#include "imgarchive.h"
 #include "imgparser.h"
 #include <filesystem>
 
-IMGMgr::IMGMgr(std::string Path, bool CreateNew)
+IMGArchive::IMGArchive(std::string Path, bool CreateNew)
 {
     if (CreateNew)
     {
@@ -14,37 +14,47 @@ IMGMgr::IMGMgr(std::string Path, bool CreateNew)
     else
     {
         this->Path = Path;
-        IParser *parser = GetParser(eImgVer::One);
-        if (parser)
+        this->ImageVersion = GetVersion(Path);
+        switch(this->ImageVersion)
         {
-            parser->Open(this);
+        case eImgVer::One:
+        case eImgVer::Two:
+            Parser = Parser::Get();
+            break;
+        default: 
+            Parser = nullptr;
+            break;
+        }
+
+        if (Parser)
+        {
+            Parser->Open(this);
         }
     }
 } 
 
-std::string IMGMgr::GetFileType(const char* name)
+std::string IMGArchive::GetFileType(const char* name)
 {
-    std::string type = "Unknown";
-    if (strstr(name, ".dff")) type = "Model";
-    if (strstr(name, ".txd")) type = "Texture";
-    if (strstr(name, ".col")) type = "Collision";
-    if (strstr(name, ".ifp")) type = "Animation";
-    if (strstr(name, ".ipl")) type = "Item placement";
-    if (strstr(name, ".ide")) type = "Item defination";
+    if (strstr(name, ".dff")) return "Model";
+    if (strstr(name, ".txd")) return "Texture";
+    if (strstr(name, ".col")) return "Collision";
+    if (strstr(name, ".ifp")) return "Animation";
+    if (strstr(name, ".ipl")) return "Item placement";
+    if (strstr(name, ".ide")) return "Item defination";
+    if (strstr(name, ".dat")) return "Data";
 
-    return type;
+    return std::filesystem::path(name).extension().string() + " file";
 }
 
-void IMGMgr::ExportEntry(EntryInfo *pEntry, std::string filePath, bool log)
+void IMGArchive::ExportEntry(EntryInfo *pEntry, std::string filePath, bool log)
 {
-    IParser *parser = GetParser(eImgVer::One);
-    if (parser)
+    if (Parser)
     {
-        parser->Export(this, pEntry, filePath, log);
+        Parser->Export(this, pEntry, filePath, log);
     }
 }
 
-void IMGMgr::ExportAll(ArchiveInfo *pInfo)
+void IMGArchive::ExportAll(ArchiveInfo *pInfo)
 {
     pInfo->pArc->ProgressBar.bInUse = true;
     size_t total =  pInfo->pArc->EntryList.size();
@@ -66,7 +76,7 @@ void IMGMgr::ExportAll(ArchiveInfo *pInfo)
     delete pInfo;
 }
 
-void IMGMgr::ExportSelected(ArchiveInfo *pInfo)
+void IMGArchive::ExportSelected(ArchiveInfo *pInfo)
 {
     pInfo->pArc->ProgressBar.bInUse = true;
     size_t total =  pInfo->pArc->EntryList.size();
@@ -91,16 +101,15 @@ void IMGMgr::ExportSelected(ArchiveInfo *pInfo)
     delete pInfo;
 }
 
-void IMGMgr::ImportEntry(const std::string &path, bool replace)
+void IMGArchive::ImportEntry(const std::string &path, bool replace)
 {
-    IParser *parser = GetParser(eImgVer::One);
-    if (parser)
+    if (Parser)
     {
-        parser->Import(this, path, replace);
+        Parser->Import(this, path, replace);
     }
 }
 
-void IMGMgr::ImportEntries(const std::string &path, bool replace)
+void IMGArchive::ImportEntries(const std::string &path, bool replace)
 {
     std::string temp = "";
     for (char c : path)
@@ -123,41 +132,46 @@ void IMGMgr::ImportEntries(const std::string &path, bool replace)
     }
 }
 
-void IMGMgr::AddLogMessage(std::string &&message)
+void IMGArchive::AddLogMessage(std::string &&message)
 {
     LogList.push_back(std::move(message));
 }
 
-bool IMGMgr::IsSupported(const std::string &Path)
+eImgVer IMGArchive::GetVersion(const std::string &Path)
 {
+    eImgVer imgVer = eImgVer::Unknown;
+
+    // It's easier to detect v2, so let's do it first
     FILE *fp = fopen(Path.c_str(), "rb");
     if (fp)
     {
         char ver[4];
         fread(ver, sizeof(ver), 1, fp);
-        return (ver[0] == 'V' && ver[1] == 'E' && ver[2] == 'R' && ver[3] == '2');
+        if (ver[0] == 'V' && ver[1] == 'E' && ver[2] == 'R' && ver[3] == '2')
+        {
+            imgVer = eImgVer::Two;
+        }
         fclose(fp);
     }
-    return false;
-}
 
-void IMGMgr::Rebuild(ArchiveInfo *pInfo)
-{
-    IParser *parser = GetParser(eImgVer::One);
-    if (parser)
-    {
-        parser->Save(pInfo);
-    }
-}
+    //  How to actually detect v1?
+    std::filesystem::path fsPath = std::filesystem::path(Path);
+    std::string dirPath = Path;
+    dirPath.replace(dirPath.end()-3, dirPath.end(), "dir");
 
-IParser* IMGMgr::GetParser(eImgVer version)
-{
-    switch(version)
+    // if both .dir & .img exists with same name it's v1 YAY!
+    if (std::filesystem::exists(fsPath) && std::filesystem::exists(dirPath))
     {
-    case eImgVer::One:
-        return ParserV2::Get();
-        break;
+        imgVer = eImgVer::One;
     }
 
-    return nullptr;
+    return imgVer;
+}
+
+void IMGArchive::Save(ArchiveInfo *pInfo)
+{
+    if (pInfo->pArc->Parser)
+    {
+        pInfo->pArc->Parser->Save(pInfo);
+    }
 }

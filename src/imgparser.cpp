@@ -1,41 +1,54 @@
 #include "pch.h"
 #include "imgparser.h"
-#include "imgmgr.h"
+#include "imgarchive.h"
 
-void ParserV2::Open(IMGMgr *pMgr)
+void Parser::Open(IMGArchive *pArc)
 {
-    if (std::filesystem::exists(pMgr->Path))
+    std::string dirPath = pArc->Path;
+    if (pArc->ImageVersion == eImgVer::One)
     {
-        pMgr->FileName = std::move(std::filesystem::path(pMgr->Path).filename().stem().string());
-        FILE *fp = fopen(pMgr->Path.c_str(), "rb");
+        dirPath.replace(dirPath.end()-3, dirPath.end(), "dir");
+    }
+
+    if (std::filesystem::exists(dirPath))
+    {
+        pArc->FileName = std::move(std::filesystem::path(dirPath).filename().stem().string());
+        FILE *fp = fopen(dirPath.c_str(), "rb");
         if (fp)
         {
-            char ver[4];
-            fread(ver, sizeof(ver), 1, fp);
-            if (ver[0] == 'V' && ver[1] == 'E' && ver[2] == 'R' && ver[3] == '2')
+            uint32_t TotalEntries = 0;
+
+            // fetch size
+            if (pArc->ImageVersion == eImgVer::One)
             {
-                uint32_t TotalEntries;
+                fseek(fp, 0, SEEK_END);
+                TotalEntries = ftell(fp) / 32; // size of dir 
+                fseek(fp, 0, SEEK_SET);
+            }
+            else
+            {
+                // We already know it's v2 archive
+                fseek(fp, 4, 0);
                 fread(&TotalEntries, sizeof(TotalEntries), 1, fp);
+            }
 
-                for (unsigned int i = 0; i < TotalEntries; ++i)
-                {
-                    EntryInfo entry;
-                    fread(&entry.Offset, sizeof(entry.Offset), 1, fp);
-                    fread(&entry.Size, sizeof(entry.Size), 1, fp);
-                    fread(&entry.unused, sizeof(entry.unused), 1, fp);
-                    fread(entry.FileName, sizeof(entry.FileName), 1, fp);
+            for (unsigned int i = 0; i < TotalEntries; ++i)
+            {
+                EntryInfo entry;
+                fread(&entry.Offset, sizeof(entry.Offset), 1, fp);
+                fread(&entry.Size, sizeof(entry.Size), 1, fp);
+                fread(entry.FileName, sizeof(entry.FileName), 1, fp);
 
-                    entry.Type = IMGMgr::GetFileType(entry.FileName);
-                    pMgr->EntryList.push_back(std::move(entry));
-                }
+                entry.Type = IMGArchive::GetFileType(entry.FileName);
+                pArc->EntryList.push_back(std::move(entry));
             }
         }
         fclose(fp);
     }
-    pMgr->AddLogMessage("Opened archive");
+    pArc->AddLogMessage("Opened archive");
 }
 
-void ParserV2::Export(IMGMgr *pMgr, EntryInfo *pEntry, const std::string& filePath, bool logMsg)
+void Parser::Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::string& filePath, bool logMsg)
 {
     FILE *pOut = fopen(filePath.c_str(), "wb+");
     FILE *pImg = fopen(pMgr->Path.c_str(), "rb");
@@ -68,7 +81,7 @@ void ParserV2::Export(IMGMgr *pMgr, EntryInfo *pEntry, const std::string& filePa
     }
 }
 
-void ParserV2::Import(IMGMgr *pArc, const std::string &path, bool replace)
+void Parser::Import(IMGArchive *pArc, const std::string &path, bool replace)
 {
     std::filesystem::path p {path};
 
@@ -105,42 +118,60 @@ void ParserV2::Import(IMGMgr *pArc, const std::string &path, bool replace)
     info.FileName[23] = '\0';
     info.Path = path;
     info.bImported = true;
-    info.Type = IMGMgr::GetFileType(info.FileName);
-    info.Size = static_cast<uint16_t>(std::filesystem::file_size(path))/2048; // bytes -> sector
+    info.Type = IMGArchive::GetFileType(info.FileName);
+    info.Size = static_cast<uint32_t>(std::filesystem::file_size(path))/2048; // bytes -> sector
     pArc->EntryList.push_back(std::move(info));
     pArc->AddLogMessage(std::format("Imported {}", name));
 }
 
-void ParserV2::Save(ArchiveInfo *pInfo)
+void Parser::Save(ArchiveInfo *pInfo)
 {
     if (pInfo->pArc->Path == "")
     {
         return;
     }
 
+    eImgVer ver = pInfo->pArc->ImageVersion;
     pInfo->pArc->ProgressBar.bInUse = true;
     std::string tempPath = pInfo->path + ".temp";
-    FILE *fOut = fopen(tempPath.c_str(), "wb");
-    FILE *fImg = fopen(pInfo->pArc->Path.c_str(), "rb");
+    FILE *fImg = fopen(tempPath.c_str(), "wb");
+    FILE *fIn = fopen(pInfo->pArc->Path.c_str(), "rb");
 
-    if (fOut)
+    // used for v1 archives
+    FILE *fDir = nullptr;
+    std::string dirPath = "";
+    std::string tempDirPath = "";
+
+    if (ver == eImgVer::One)
     {
-        // header
-        fwrite("VER2", 4, 1, fOut);
-        uint32_t TotalEntries = static_cast<uint32_t>(pInfo->pArc->EntryList.size());
-        fwrite(&TotalEntries, sizeof(TotalEntries), 1, fOut);
+        dirPath = pInfo->path;
+        dirPath.replace(dirPath.end()-3, dirPath.end(), "dir");
+        tempDirPath = dirPath + ".temp";
+        fDir = fopen(tempDirPath.c_str(), "wb");
+    }   
 
-        // directory entry
-        uint32_t offset = 4096; // start offset
+    if (fImg && (fDir || ver == eImgVer::Two))
+    {
+        // v2 header
+        if (ver == eImgVer::Two)
+        {
+            fwrite("VER2", 4, 1, fImg);
+            uint32_t TotalEntries = static_cast<uint32_t>(pInfo->pArc->EntryList.size());
+            fwrite(&TotalEntries, sizeof(TotalEntries), 1, fImg);
+        }
+
+        // dir entry
+        uint32_t offset = ver == eImgVer::One ? 0 : 4096; // start offset
         size_t index = 0;
         size_t total = pInfo->pArc->EntryList.size();
         for (EntryInfo &e : pInfo->pArc->EntryList)
         {
             size_t size = 0;
             FILE *fFile = NULL;
+
+            // fetch archive size
             if (e.bImported)
             {
-                // read data from file
                 fFile = fopen(e.Path.c_str(), "rb");
                 fseek(fFile, 0, SEEK_END);
                 size = ftell(fFile);
@@ -148,26 +179,35 @@ void ParserV2::Save(ArchiveInfo *pInfo)
             }
             else
             {
-                // read data from img
-                fseek(fImg, e.Offset*2048, 0);
+                fseek(fIn, e.Offset*2048, 0);
                 size = e.Size*2048;
             }
 
             char *buf = new char[size + 1];
             if (buf)
             {
-                fread(buf, size, 1, e.bImported? fFile : fImg);
+                fread(buf, size, 1, e.bImported? fFile : fIn);
                 e.Offset = offset/2048;
 
                 long pos = 8 + static_cast<long>(index) * 32;
-                fseek(fOut, pos, 0);
-                fwrite(&e.Offset, sizeof(e.Offset), 1, fOut);
-                fwrite(&e.Size, sizeof(e.Size), 1, fOut);
-                fwrite(&e.unused, sizeof(e.unused), 1, fOut);
-                fwrite(e.FileName, sizeof(e.FileName), 1, fOut);
 
-                fseek(fOut, offset, 0);
-                fwrite(buf, size, 1, fOut);
+                if (ver == eImgVer::One)
+                {
+                    fwrite(&e.Offset, sizeof(e.Offset), 1, fDir);
+                    fwrite(&e.Size, sizeof(e.Size), 1, fDir);
+                    fwrite(e.FileName, sizeof(e.FileName), 1, fDir);
+                }
+                else
+                {
+                    fseek(fImg, pos, 0);
+                    fwrite(&e.Offset, sizeof(e.Offset), 1, fImg);
+                    fwrite(&e.Size, sizeof(e.Size), 1, fImg);
+                    fwrite(e.FileName, sizeof(e.FileName), 1, fImg);
+                    fseek(fImg, offset, 0);
+                }
+
+                fwrite(buf, size, 1, fImg);
+                
                 delete[] buf;
             }
 
@@ -181,14 +221,19 @@ void ParserV2::Save(ArchiveInfo *pInfo)
             if (pInfo->pArc->ProgressBar.bCancel)
             {
                 pInfo->pArc->ProgressBar.bCancel = false;
+                if (fIn)
+                {
+                    fclose(fIn);
+                }
+                if (fDir)
+                {
+                    fclose(fDir);
+                    std::filesystem::remove(tempDirPath);
+                }
                 if (fImg)
                 {
                     fclose(fImg);
-                }
-                if (fOut)
-                {
-                    fclose(fOut);
-                    remove(tempPath.c_str());
+                    std::filesystem::remove(tempPath);
                 }
                 pInfo->pArc->AddLogMessage("Rebuilding failed");
                 pInfo->pArc->ProgressBar.bInUse = false;
@@ -200,15 +245,24 @@ void ParserV2::Save(ArchiveInfo *pInfo)
             ++index;
         }        
     }
+
+    if (fIn)
+    {
+        fclose(fIn);
+    }
+
+    if (fDir)
+    {
+        fclose(fDir);
+        std::filesystem::remove(dirPath);
+        std::filesystem::rename(tempDirPath, dirPath);
+    }
+
     if (fImg)
     {
         fclose(fImg);
-    }
-    if (fOut)
-    {
-        fclose(fOut);
-        remove(pInfo->pArc->Path.c_str());
-        rename(tempPath.c_str(), pInfo->path.c_str());
+        std::filesystem::remove(pInfo->pArc->Path);
+        std::filesystem::rename(tempPath, pInfo->path);
     }
 
     // update data

@@ -1,13 +1,13 @@
 #pragma once
 #include "ui/application.h"
-#include "imgmgr.h"
+#include "imgarchive.h"
 #include "SimpleIni.h"
 
 class Editor
 {
 private:
-    static inline std::vector<IMGMgr> ArchiveList;
-    static inline IMGMgr* pSelectedArchive;         // pointer to the selected archive in editor
+    static inline std::vector<IMGArchive> ArchiveList;
+    static inline IMGArchive* pSelectedArchive;         // pointer to the selected archive in editor
     static inline EntryInfo *pContextEntry = nullptr;  // pointer to the selected archive entry in editor
     static inline Ui::Application *pApp = nullptr;
     static inline CSimpleIniA Config;
@@ -25,7 +25,7 @@ private:
 public:
 
     // Adds a new archive to the list
-    static void AddArchiveEntry(IMGMgr &&archive);
+    static void AddArchiveEntry(IMGArchive &&archive);
 
     // Returns true if archive with the given name already exists
     static bool DoesArchiveExist(const std::string &name);

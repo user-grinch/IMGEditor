@@ -1,37 +1,41 @@
 #pragma once
-#include "imgmgr.h"
+#include "imgarchive.h"
 
 class IParser
 {
 public:
     // Opens the archive & feeds data
-    virtual void Open(IMGMgr *pMgr) = 0;
+    virtual void Open(IMGArchive *pMgr) = 0;
 
     // Exports an entity form the archive
-    virtual void Export(IMGMgr *pMgr, EntryInfo *pEntry, const std::string& filePath, bool logMsg = true) = 0;
+    virtual void Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::string& filePath, bool logMsg = true) = 0;
 
     // Imports an entity to the archive
-    virtual void Import(IMGMgr *pArc, const std::string &path, bool replace) = 0;
+    virtual void Import(IMGArchive *pArc, const std::string &path, bool replace) = 0;
 
     // Rebuilds the archive & saves changes
     virtual void Save(ArchiveInfo *pInfo) = 0;
 };
 
 /*
-    Parser for IMG version 2 format
-    Used for GTA SA
+    The original IMG format
+    Used by GTA III, VC, Bully, Manhunt, SA etc.
 */
-class ParserV2 : public IParser
+class Parser : public IParser
 {
+private:
+    Parser(){};
+    Parser(Parser&){};
+
 public:
-    static ParserV2* Get()
+    static Parser* Get()
     {
-        static ParserV2 parser;
+        static Parser parser;
         return &parser;
     }
 
-    void Open(IMGMgr *pMgr);
-    void Export(IMGMgr *pMgr, EntryInfo *pEntry, const std::string& filePath, bool logMsg = true);
-    void Import(IMGMgr *pArc, const std::string &path, bool replace);
+    void Open(IMGArchive *pMgr);
+    void Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::string& filePath, bool logMsg = true);
+    void Import(IMGArchive *pArc, const std::string &path, bool replace);
     void Save(ArchiveInfo *pInfo);
 };
