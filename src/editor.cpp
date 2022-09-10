@@ -151,6 +151,32 @@ void Editor::ProcessMenuBar()
         }
         ImGui::EndMenu();
     }
+    if (ImGui::BeginMenu("Edit"))
+    {
+        if (ImGui::MenuItem("Import"))
+        {
+            std::string fileNames = WinDialogs::ImportFiles();
+            pSelectedArchive->ImportEntries(fileNames);
+        }
+        if (ImGui::MenuItem("Import & replace"))
+        {
+            std::string fileNames = WinDialogs::ImportFiles();
+            pSelectedArchive->ImportEntries(fileNames, true);
+        }
+        if (ImGui::MenuItem("Export all", NULL, false, !pSelectedArchive->ProgressBar.bInUse))
+        {
+            std::string path = WinDialogs::SaveFolder();
+            ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
+            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportAll, info, NULL, NULL);
+        }
+        if (ImGui::MenuItem("Export selected", NULL, false, !pSelectedArchive->ProgressBar.bInUse))
+        {
+            std::string path = WinDialogs::SaveFolder();
+            ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
+            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportSelected, info, NULL, NULL);
+        }
+        ImGui::EndMenu();
+    }
     if (ImGui::BeginMenu("Option"))
     {
         if (ImGui::BeginMenu("Theme", true))
@@ -286,7 +312,9 @@ void Editor::ProcessWindow()
             {
                 pSelectedArchive = &archive;
                 ImGui::Columns(2, NULL, false);
-                ImGui::SetColumnWidth(0, windowWidth/1.5f);
+                float columnWidth = windowWidth/1.5f;
+                ImGui::SetColumnWidth(0, columnWidth);
+            
                 // Search bar
                 ImGui::SetNextItemWidth(ImGui::GetColumnWidth() - style.ItemSpacing.x - style.WindowPadding.x);
 
@@ -298,9 +326,10 @@ void Editor::ProcessWindow()
                     // Freeze the header row
                     ImGui::TableSetupScrollFreeze(0, 1);
                     ImGui::TableSetupColumn("Name");
-                    ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 100);
-                    ImGui::TableSetupColumn("Offset", ImGuiTableColumnFlags_WidthFixed, 50);
-                    ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, 50);
+                    float scl = columnWidth / 445.5f;
+                    ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 100 * scl);
+                    ImGui::TableSetupColumn("Offset", ImGuiTableColumnFlags_WidthFixed, 50 * scl);
+                    ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, 50 * scl);
                     ImGui::TableHeadersRow();
 
                     static ImGuiListClipper clipper;
@@ -554,7 +583,15 @@ void Editor::Run()
     Ui::Specification spec;
     spec.Name = "IMG Editor v" MENU_VERSION;
     spec.MenuBarFunc = ProcessMenuBar;
-    spec.Size = { 700, 500 };
+
+    HMONITOR monitor = MonitorFromWindow(NULL, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO info;
+    info.cbSize = sizeof(MONITORINFO);
+    GetMonitorInfo(monitor, &info);
+    MonitorScale.x = (info.rcMonitor.right - info.rcMonitor.left) / 1366.0f;
+    MonitorScale.y = (info.rcMonitor.bottom - info.rcMonitor.top) / 768.0f;
+    spec.Size.x = static_cast<int>(700 * MonitorScale.x);
+    spec.Size.y = static_cast<int>(500 * MonitorScale.y);
 
     spec.LayerFunc = ProcessWindow;
     spec.PopupFunc = firstLaunch ? WelcomePopup : nullptr;

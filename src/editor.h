@@ -12,6 +12,7 @@ private:
     static inline Ui::Application *pApp = nullptr;
     static inline CSimpleIniA Config;
     static inline std::string ConfigPath = "";
+    static inline ImVec2 MonitorScale = {0, 0};
 
     // Popups
     static void AboutPopUp();

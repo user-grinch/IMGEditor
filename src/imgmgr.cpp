@@ -113,7 +113,32 @@ void IMGArchive::ExportAll(ArchiveInfo *pInfo)
     delete pInfo;
 }
 
-void IMGArchive::ImportEntry(const std::string &path)
+void IMGArchive::ExportSelected(ArchiveInfo *pInfo)
+{
+    pInfo->pArc->ProgressBar.bInUse = true;
+    size_t total =  pInfo->pArc->EntryList.size();
+    
+    for (size_t i = 0; i < total; ++i)
+    {
+        if (pInfo->pArc->EntryList[i].bSelected)
+        {
+            std::string path = std::format("{}\\{}", pInfo->path, pInfo->pArc->EntryList[i].FileName);
+            pInfo->pArc->ExportEntry(&pInfo->pArc->EntryList[i], path, false);
+            pInfo->pArc->ProgressBar.Percentage = (static_cast<float>(i)+1)/ static_cast<float>(total);
+
+            if (pInfo->pArc->ProgressBar.bCancel)
+            {
+                pInfo->pArc->ProgressBar.bCancel = false;
+                break;
+            }
+        }
+    }
+    pInfo->pArc->AddLogMessage("Exported entries");
+    pInfo->pArc->ProgressBar.bInUse = false;
+    delete pInfo;
+}
+
+void IMGArchive::ImportEntry(const std::string &path, bool replace)
 {
     std::filesystem::path p {path};
 
@@ -131,6 +156,20 @@ void IMGArchive::ImportEntry(const std::string &path)
         return;
     }
 
+    if (replace)
+    {
+        EntryList.erase (
+            std::remove_if (
+                EntryList.begin(), 
+                EntryList.end(), 
+                [&](EntryInfo const& obj) {
+                    return obj.FileName == name;
+                }
+            ), 
+            EntryList.end()
+        );
+    }
+
     EntryInfo info;
     strcpy(info.FileName, name.c_str());
     info.FileName[23] = '\0';
@@ -142,7 +181,7 @@ void IMGArchive::ImportEntry(const std::string &path)
     AddLogMessage(std::format("Imported {}", name));
 }
 
-void IMGArchive::ImportEntries(const std::string &path)
+void IMGArchive::ImportEntries(const std::string &path, bool replace)
 {
     std::string temp = "";
     for (char c : path)
@@ -159,7 +198,7 @@ void IMGArchive::ImportEntries(const std::string &path)
             }
 
             temp += "\0";
-            ImportEntry(temp);
+            ImportEntry(temp, replace);
             temp = "";
         }
     }
@@ -231,7 +270,7 @@ void IMGArchive::Rebuild(ArchiveInfo *pInfo)
                 fread(buf, size, 1, e.bImported? fFile : fImg);
                 e.Offset = offset/2048;
 
-                size_t pos = 8 + static_cast<long>(index) * 32;
+                long pos = 8 + static_cast<long>(index) * 32;
                 fseek(fOut, pos, 0);
                 fwrite(&e.Offset, sizeof(e.Offset), 1, fOut);
                 fwrite(&e.Size, sizeof(e.Size), 1, fOut);

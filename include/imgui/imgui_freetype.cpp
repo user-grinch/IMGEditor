@@ -40,7 +40,9 @@
 #include FT_MODULE_H            // <freetype/ftmodapi.h>
 #include FT_GLYPH_H             // <freetype/ftglyph.h>
 #include FT_SYNTHESIS_H         // <freetype/ftsynth.h>
+#pragma warning(push, 0)
 #pragma comment(lib, "freetype.lib")
+#pragma warning(pop)
 
 #ifdef _MSC_VER
 #pragma warning (disable: 4505)     // unreferenced local function has been removed (stb stuff)

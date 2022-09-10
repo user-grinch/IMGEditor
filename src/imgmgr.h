@@ -65,14 +65,17 @@ public:
     // Exports the entire archive, should run in a separate thread
     static void ExportAll(ArchiveInfo *pInfo);
 
+    // Exports the selected entries in the archive
+    static void ExportSelected(ArchiveInfo *pInfo);
+
     // Get file type
     static std::string GetFileType(const char* name);
 
     // Import entity
-    void ImportEntry(const std::string& path);
+    void ImportEntry(const std::string& path, bool replace = false);
 
     // Imports multiple file entries at once
-    void ImportEntries(const std::string& filePaths);
+    void ImportEntries(const std::string& filePaths, bool replace = false);
 
     // Returns true if archive is supported(v2)
     static bool IsSupported(const std::string &Path);

@@ -68,13 +68,14 @@ void Ui::Renderer::ApplyLightTheme()
     colors[ImGuiCol_ScrollbarGrab]          = ImVec4(0.75f, 0.75f, 0.75f, 1.00f);
     colors[ImGuiCol_ScrollbarGrabHovered]   = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
     colors[ImGuiCol_ScrollbarGrabActive]    = ImVec4(0.40f, 0.40f, 0.40f, 1.00f);
-    colors[ImGuiCol_CheckMark]              = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+    colors[ImGuiCol_CheckMark]              = ImVec4(0.26f, 0.58f, 1.0f, 1.00f);
     colors[ImGuiCol_SliderGrab]             = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
     colors[ImGuiCol_SliderGrabActive]       = ImVec4(0.40f, 0.40f, 0.40f, 1.00f);
+    colors[ImGuiCol_CheckMark]              = ImVec4(0.65f, 0.75f, 1.00f, 1.00f);
     colors[ImGuiCol_Button]                 = ImVec4(0.97f, 0.97f, 0.97f, 1.00f);
     colors[ImGuiCol_ButtonHovered]          = ImVec4(0.78f, 0.87f, 0.98f, 1.00f);
     colors[ImGuiCol_ButtonActive]           = ImVec4(0.71f, 0.81f, 1.00f, 1.00f);
-    colors[ImGuiCol_Header]                 = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
+    colors[ImGuiCol_Header]                 = ImVec4(0.78f, 0.87f, 0.94f, 1.00f);
     colors[ImGuiCol_HeaderHovered]          = ImVec4(0.78f, 0.87f, 0.98f, 1.00f);
     colors[ImGuiCol_HeaderActive]           = ImVec4(0.73f, 0.82f, 0.98f, 1.00f);
     colors[ImGuiCol_Separator]              = ImVec4(0.39f, 0.39f, 0.39f, 0.62f);
@@ -286,7 +287,7 @@ void Ui::Renderer::DrawLayer(Specification &Spec)
     {
         return;
     }
-
+    
     ProcessThemes();
     ImGui_ImplDX9_NewFrame();
     ImGui_ImplWin32_NewFrame();
@@ -383,18 +384,6 @@ void Ui::Renderer::Init(const Specification &Spec)
     hwnd = CreateWindow(wc.lpszClassName,  Spec.Name.c_str(), WS_OVERLAPPEDWINDOW, Spec.Pos.x, Spec.Pos.y, Spec.Size.x, Spec.Size.y, 
                         NULL, NULL, wc.hInstance, NULL);
 
-    BOOL useDarkMode = TRUE;
-    if (IsLightTheme())
-    {
-        useDarkMode = FALSE;
-        DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &useDarkMode, sizeof(useDarkMode));
-    }
-    else
-    {
-        
-        DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &useDarkMode, sizeof(useDarkMode));
-    }
-
     // Initialize Direct3D
     if (CreateDevice(hwnd) == eDeviceState::CreationFailed)
     {
@@ -406,12 +395,19 @@ void Ui::Renderer::Init(const Specification &Spec)
     // Show the window
     ShowWindow(hwnd, SW_SHOWDEFAULT);
     UpdateWindow(hwnd);
-
+    
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = nullptr;
     io.LogFilename = nullptr;
-    io.FontDefault = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\segoeui.ttf", 17.0f);
+
+    // get screen info
+    HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO info;
+    info.cbSize = sizeof(MONITORINFO);
+    GetMonitorInfo(monitor, &info);
+    int h = info.rcMonitor.bottom - info.rcMonitor.top;
+    io.FontDefault = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\segoeui.ttf", 17.0f * h/768);
     io.Fonts->Build();
 
     ImGui_ImplWin32_Init(hwnd);

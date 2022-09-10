@@ -9,7 +9,7 @@ std::string WinDialogs::OpenFile()
 
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = 0;
+    ofn.hwndOwner = GetActiveWindow();
     ofn.lpstrFile = szFile;
     ofn.nMaxFile = sizeof(szFile);
     ofn.lpstrFilter = "IMG Archive\0*.IMG\0All\0*.*\0";
@@ -34,6 +34,7 @@ std::string WinDialogs::ImportFiles()
     file[0] = '\0';
     ofn.lpstrFile = file;
     ofn.nMaxFile = 2048;
+    ofn.hwndOwner = GetActiveWindow();
     ofn.Flags = OFN_ALLOWMULTISELECT | OFN_EXPLORER;
 
     if (GetOpenFileName(&ofn))
@@ -50,7 +51,7 @@ std::string WinDialogs::SaveFile(std::string fileName)
     OPENFILENAME ofn;   
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = 0;
+    ofn.hwndOwner = GetActiveWindow();
     ofn.lpstrFile = fileName.data();
     ofn.nMaxFile = static_cast<DWORD>(fileName.capacity());
     ofn.lpstrFilter = "IMG Archive\0*.IMG\0All\0*.*\0";
@@ -78,8 +79,9 @@ std::string WinDialogs::SaveFolder()
     if (SUCCEEDED(hr))
     {
         pFileOpen->SetOptions(FOS_PICKFOLDERS);
+        
         // Show the Open dialog box.
-        hr = pFileOpen->Show(NULL);
+        hr = pFileOpen->Show(GetActiveWindow());
 
         // Get the file name from the dialog box.
         if (SUCCEEDED(hr))
