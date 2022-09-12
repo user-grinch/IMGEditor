@@ -6,7 +6,7 @@ Supported games,
 1. GTA III  (IMG v1)
 2. Vice City  (IMG v1)
 3. Bully Scholarship Edition  (IMG v1)
-4. GTA SanAndreas  (IMG v2 & Fastman92's format)
+4. GTA SanAndreas  (IMG v2)
 
 More info about the foramts can be found [here](https://gtamods.com/wiki/IMG_archive). 
 

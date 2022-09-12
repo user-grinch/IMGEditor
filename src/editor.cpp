@@ -49,7 +49,7 @@ void Editor::WelcomePopup()
     ImGui::Text("1. GTA 3");
     ImGui::Text("2. GTA VC");
     ImGui::Text("3. GTA SA");
-    ImGui::Text("4. Fastman92's format");
+    ImGui::Text("4. Bully Scholarship Edition");
     ImGui::Spacing();
     ImGui::TextWrapped("Directly open archives in IMG Editor by windows modifying file association.");
     ImGui::Spacing();
@@ -127,9 +127,10 @@ void Editor::ProcessMenuBar()
                             ImGui::Text("IMG format not supported!");
                             ImGui::Spacing();
                             ImGui::Text("Supported formats,");
-                            ImGui::Text("1. IMG v1 (GTA III & VC)");
-                            ImGui::Text("2. IMG v2 (GTA SA)");
-                            ImGui::Text("3. Fastman92's format (GTA SA with FLA plugin)");
+                            ImGui::Text("1. GTA 3");
+                            ImGui::Text("2. GTA VC");
+                            ImGui::Text("3. GTA SA");
+                            ImGui::Text("4. Bully Scholarship Edition");
                         });
                     }
                 }

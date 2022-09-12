@@ -11,10 +11,7 @@ enum class eImgVer
     Unknown,
 };
 
-/*
-    Contains information about each entry in the archive
-    TODO: Add 3, VC & Fastman92's img support
-*/
+// Contains information about each entry in the archive
 struct EntryInfo
 {
     // archive data
