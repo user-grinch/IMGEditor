@@ -13,10 +13,11 @@ private:
     static inline CSimpleIniA Config;
     static inline std::string ConfigPath = "";
     static inline ImVec2 MonitorScale = {0, 0};
-    static inline ImGuiTextFilter Filter;
+    static inline ImGuiTextFilter Filter = "";
 
     // Popups
     static void AboutPopUp();
+    static void UpdatePopUp();
     static void WelcomePopup();
 
     static void ProcessContextMenu();
@@ -31,8 +32,14 @@ public:
     // Returns true if archive with the given name already exists
     static bool DoesArchiveExist(const std::string &name);
 
+    // Returns current search filter text
+    static const char* GetFilterText();
+
     // Initializes & runs the IMGEditor
     static void Run();
+
+    // Sets editor to update found state
+    static void SetUpdateFound();
 
     // Does cleanup for the editor
     static void Shutdown();

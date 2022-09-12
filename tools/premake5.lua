@@ -45,7 +45,8 @@ project "IMGEditorApp"
     architecture "x64"
     links { 
         "d3d9",
-        "depend"
+        "depend",
+        "urlmon"
     }
 
     linkoptions { 

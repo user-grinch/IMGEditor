@@ -12,7 +12,7 @@ std::string WinDialogs::OpenFile()
     ofn.hwndOwner = GetActiveWindow();
     ofn.lpstrFile = szFile;
     ofn.nMaxFile = sizeof(szFile);
-    ofn.lpstrFilter = "IMG Archive\0*.IMG\0All\0*.*\0";
+    ofn.lpstrFilter = "IMG Archive\0*.IMG\0";
     ofn.nFilterIndex = 1;
     ofn.lpstrFileTitle = NULL;
     ofn.nMaxFileTitle = 0;

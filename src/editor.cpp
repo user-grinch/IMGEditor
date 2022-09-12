@@ -2,13 +2,13 @@
 #include "editor.h"
 #include "widget.h"
 #include "windialogs.h"
-#define MENU_VERSION "1.0-alpha"
+#include "updater.h"
 
 void Editor::AboutPopUp()
 {
     ImGui::Columns(2, nullptr, false);
     ImGui::Text("Author: Grinch_");
-    ImGui::Text("Version: " MENU_VERSION);
+    ImGui::Text("Version: " EDITOR_VERSION);
     ImGui::Spacing();
     ImGui::NextColumn();
     ImGui::Text("ImGui: %s", ImGui::GetVersion());
@@ -38,9 +38,28 @@ void Editor::AboutPopUp()
     ImGui::Text("Copyright Grinch_ 2022-2023. All rights reserved.");
 }
 
+void Editor::UpdatePopUp()
+{
+    Widget::TextCentered("A new update is available");
+    Widget::TextCentered("Current version: " EDITOR_VERSION);
+    Widget::TextCentered(std::format("Latest version: {}", Updater::GetUpdateVersion()));
+    ImGui::Spacing();
+    Widget::TextCentered("Update to to continue using the Editor");
+    ImGui::Spacing();
+    ImGui::TextWrapped("New versions may contain new features & bug fixes. Updates will become optional once the Editor reaches stable.");
+    ImGui::Dummy(ImVec2(0, 15));
+    if (ImGui::Button("Download update", Widget::CalcSize()))
+    {
+        ShellExecute(nullptr, "open", "https://github.com/user-grinch/IMGEditor/releases/", nullptr, nullptr, SW_SHOWNORMAL);
+    }
+    
+    ImGui::Dummy(ImVec2(0, 15));
+    ImGui::Text("Copyright Grinch_ 2022-2023. All rights reserved.");
+}
+
 void Editor::WelcomePopup()
 {
-    Widget::TextCentered("Welcome to IMG Editor v" MENU_VERSION);
+    Widget::TextCentered("Welcome to IMG Editor v" EDITOR_VERSION);
     Widget::TextCentered("by Grinch_");
     ImGui::Spacing();
     ImGui::TextWrapped("This editor is still work in progress. There may be LOT of bugs. Feel free to report if you find any.");
@@ -71,6 +90,10 @@ void Editor::WelcomePopup()
     ImGui::Text("Copyright Grinch_ 2022-2023. All rights reserved.");
 }
 
+const char* Editor::GetFilterText()
+{
+    return Filter.InputBuf;
+}
 
 bool Editor::DoesArchiveExist(const std::string &name)
 {
@@ -82,6 +105,14 @@ bool Editor::DoesArchiveExist(const std::string &name)
         }
     }
     return false;
+}
+
+void Editor::SetUpdateFound()
+{
+    if (pApp)
+    {
+        pApp->SetPopup(UpdatePopUp);
+    }
 }
 
 void Editor::ProcessMenuBar()
@@ -164,12 +195,14 @@ void Editor::ProcessMenuBar()
         if (ImGui::MenuItem("Import", NULL, false, pSelectedArchive))
         {
             std::string fileNames = WinDialogs::ImportFiles();
-            pSelectedArchive->ImportEntries(fileNames);
+            ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, fileNames, eImgVer::Unknown, false};
+            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ImportEntries, info, NULL, NULL);
         }
         if (ImGui::MenuItem("Import & replace", NULL, false, pSelectedArchive))
         {
             std::string fileNames = WinDialogs::ImportFiles();
-            pSelectedArchive->ImportEntries(fileNames, true);
+            ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, fileNames, eImgVer::Unknown, true};
+            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ImportEntries, info, NULL, NULL);
         }
         if (ImGui::MenuItem("Export all", NULL, false, pSelectedArchive && !pSelectedArchive->ProgressBar.bInUse))
         {
@@ -313,6 +346,13 @@ void Editor::ProcessWindow()
     float windowWidth = ImGui::GetWindowContentRegionWidth();
     ImGuiStyle &style = ImGui::GetStyle();
 
+    if (Updater::IsUpdateAvailable())
+    {
+        if(pApp)
+        {
+            pApp->SetPopup(UpdatePopUp);
+        }
+    }
     ImGuiTabBarFlags tabFlags = ImGuiTabBarFlags_FittingPolicyScroll | ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_AutoSelectNewTabs;
     pSelectedArchive = nullptr;
     if (ImGui::BeginTabBar("Archives", tabFlags))
@@ -459,8 +499,8 @@ void Editor::ProcessWindow()
                 if (ImGui::Button("Import", sz))
                 {
                     std::string fileNames = WinDialogs::ImportFiles();
-                    pSelectedArchive->ImportEntries(fileNames);
-                    pSelectedArchive->UpdateSelectList(Filter.InputBuf);
+                    ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, fileNames, eImgVer::Unknown, false};
+                    CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ImportEntries, info, NULL, NULL);
                 }
                 ImGui::SameLine();
 
@@ -606,7 +646,7 @@ void Editor::Run()
                     static_cast<long>(Ui::eTheme::SystemDefault)));
 
     Ui::Specification spec;
-    spec.Name = "IMG Editor v" MENU_VERSION;
+    spec.Name = "IMG Editor v" EDITOR_VERSION;
     spec.MenuBarFunc = ProcessMenuBar;
 
     HMONITOR monitor = MonitorFromWindow(NULL, MONITOR_DEFAULTTONEAREST);
@@ -655,6 +695,8 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     
     bool exists = std::filesystem::exists(&lpCmdLine[1]);    
     Editor::AddArchiveEntry(exists ? IMGArchive(&lpCmdLine[1]) : IMGArchive("Untitled", true));
+    Updater::CheckUpdate();
+    CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&Updater::Process, NULL, NULL, NULL);
     Editor::Run();
     return 0;
 }

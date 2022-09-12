@@ -89,7 +89,7 @@ public:
     void ImportEntry(const std::string& path, bool replace = false);
 
     // Imports multiple file entries at once
-    void ImportEntries(const std::string& filePaths, bool replace = false);
+    static void ImportEntries(ArchiveInfo *pInfo);
 
     // Rebuilds the IMG archive, save changes
     static void Save(ArchiveInfo *pInfo);

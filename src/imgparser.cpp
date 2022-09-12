@@ -121,7 +121,6 @@ void Parser::Import(IMGArchive *pArc, const std::string &path, bool replace)
     info.Type = IMGArchive::GetFileType(info.FileName);
     info.Size = static_cast<uint32_t>(std::filesystem::file_size(path))/2048; // bytes -> sector
     pArc->EntryList.push_back(std::move(info));
-    pArc->AddLogMessage(std::format("Imported {}", name));
 }
 
 void Parser::Save(ArchiveInfo *pInfo)

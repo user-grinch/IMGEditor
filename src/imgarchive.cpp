@@ -2,6 +2,7 @@
 #include "imgarchive.h"
 #include "imgparser.h"
 #include <filesystem>
+#include "editor.h"
 
 IMGArchive::IMGArchive(std::string Path, bool CreateNew)
 {
@@ -123,10 +124,12 @@ void IMGArchive::ImportEntry(const std::string &path, bool replace)
     }
 }
 
-void IMGArchive::ImportEntries(const std::string &path, bool replace)
+void IMGArchive::ImportEntries(ArchiveInfo *pInfo)
 {
+    std::vector<std::string> list;
     std::string temp = "";
-    for (char c : path)
+    std::string rootDir = "";
+    for (char c : pInfo->path)
     {
         if (c != '\0')
         {
@@ -140,10 +143,34 @@ void IMGArchive::ImportEntries(const std::string &path, bool replace)
             }
 
             temp += "\0";
-            ImportEntry(temp, replace);
+            if (std::filesystem::path(temp).extension() == "") // skip folder paths
+            {
+                rootDir = std::move(temp) + "\\";
+            }
+            else
+            {
+                list.push_back(std::move(rootDir + temp));
+            }
             temp = "";
         }
     }
+    
+    size_t total = list.size();
+    for (size_t i = 0; i != total; ++i)
+    {
+        pInfo->pArc->ImportEntry(list[i], pInfo->removeExisting);
+        pInfo->pArc->ProgressBar.Percentage = (static_cast<float>(i)+1)/ static_cast<float>(total);
+
+        if (pInfo->pArc->ProgressBar.bCancel)
+        {
+            pInfo->pArc->ProgressBar.bCancel = false;
+            pInfo->pArc->AddLogMessage("Rebuilding failed");
+            pInfo->pArc->ProgressBar.bInUse = false;
+        }
+    }
+    pInfo->pArc->UpdateSelectList(Editor::GetFilterText());
+    pInfo->pArc->AddLogMessage("Imported entries");
+    delete pInfo;
 }
 
 void IMGArchive::AddLogMessage(std::string &&message)
