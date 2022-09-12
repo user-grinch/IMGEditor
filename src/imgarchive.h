@@ -59,11 +59,12 @@ public:
     std::string Path;
     std::string FileName;
     std::vector<EntryInfo> EntryList;
+    std::vector<EntryInfo*> SelectedList;
     std::vector<std::string> LogList;
     ProgressInfo ProgressBar;
     eImgVer ImageVersion = eImgVer::Two;
     IParser *Parser = nullptr;
-
+    
     bool bOpen = true;
     bool bCreateNew;
 
@@ -95,4 +96,7 @@ public:
 
     // Rebuilds the IMG archive, save changes
     static void Save(ArchiveInfo *pInfo);
+
+    // Updated the archive search bar selected list
+    void UpdateSelectList(const char* text);
 };

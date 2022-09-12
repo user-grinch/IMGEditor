@@ -31,8 +31,21 @@ IMGArchive::IMGArchive(std::string Path, bool CreateNew)
     if (Parser)
     {
         Parser->Open(this);
+        UpdateSelectList("");
     }
 } 
+
+void IMGArchive::UpdateSelectList(const char *text)
+{
+    SelectedList.clear();
+    for (EntryInfo &e : EntryList)
+    {
+        if (strstr(e.FileName, text))
+        {
+            SelectedList.push_back(&e);
+        }
+    }
+}
 
 std::string IMGArchive::GetFileType(const char* name)
 {

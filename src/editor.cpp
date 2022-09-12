@@ -242,6 +242,7 @@ void Editor::ProcessContextMenu()
     // Restrict showing context menu outside window
     // ImGui::SetNextWindowPosConstraints()
     static float height = 0.0f;
+
     ImVec2 pos = ImGui::GetMousePos();
     float windowMaxY = pApp->GetWindowSize().y / 1.1f;
     if (pos.y + height > windowMaxY)
@@ -266,6 +267,7 @@ void Editor::ProcessContextMenu()
                 ),
                 pSelectedArchive->EntryList.end()
             ); 
+            pSelectedArchive->UpdateSelectList(Filter.InputBuf);
             pContextEntry = nullptr;
         }
 
@@ -285,6 +287,7 @@ void Editor::ProcessContextMenu()
                     e.bRename  = false;
                 }
                 pContextEntry->bRename = true;
+                pSelectedArchive->UpdateSelectList(Filter.InputBuf);
             }
             pContextEntry = nullptr;
         }
@@ -324,9 +327,11 @@ void Editor::ProcessWindow()
             
                 // Search bar
                 ImGui::SetNextItemWidth(ImGui::GetColumnWidth() - style.ItemSpacing.x - style.WindowPadding.x);
-                static ImGuiTextFilter filter;
                 std::string hint = std::format("Search  {}", archive.Path);
-                Widget::Filter("##Search", filter, hint.c_str()); 
+                if (Widget::Filter("##Search", Filter, hint.c_str()))
+                {
+                    pSelectedArchive->UpdateSelectList(Filter.InputBuf);
+                }
                 if (ImGui::BeginTable("ListedItems", 4, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
                 {
                     // Freeze the header row
@@ -338,38 +343,37 @@ void Editor::ProcessWindow()
                     ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, 50 * scl);
                     ImGui::TableHeadersRow();
 
-                    static ImGuiListClipper clipper;
-                    clipper.Begin(static_cast<int>(archive.EntryList.size()), ImGui::GetTextLineHeight());
+                    ImGuiListClipper clipper(static_cast<int>(pSelectedArchive->SelectedList.size()), ImGui::GetTextLineHeight());
                     while (clipper.Step())
                     {
                         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
                         {
-                            EntryInfo &entry = archive.EntryList[i];
-                            if (filter.PassFilter(entry.FileName))
+                            EntryInfo *pEntry = archive.SelectedList[i];
+                            if (Filter.PassFilter(pEntry->FileName))
                             {
                                 ImGui::TableNextRow();
                                 ImGui::TableNextColumn();
 
                                 // Renaming system
-                                if (entry.bRename)
+                                if (pEntry->bRename)
                                 {
                                     ImGui::SetNextItemWidth(ImGui::GetColumnWidth());
-                                    ImGui::InputText("##Rename", entry.FileName, sizeof(entry.FileName));
+                                    ImGui::InputText("##Rename", pEntry->FileName, sizeof(pEntry->FileName));
                                     if (ImGui::IsKeyPressed(VK_RETURN) 
                                     || (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsItemHovered()))
                                     {
-                                        entry.bRename = false;
+                                        pEntry->bRename = false;
                                     }
                                 }
                                 else
                                 {
                                     bool styleApplied = false;
-                                    if (entry.bSelected)
+                                    if (pEntry->bSelected)
                                     {
                                         ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
                                         styleApplied = true;
                                     }
-                                    if (ImGui::Selectable(entry.FileName, entry.bSelected))
+                                    if (ImGui::Selectable(pEntry->FileName, pEntry->bSelected))
                                     {
                                         // selection & renanme disable
                                         bool prevSelected = false;
@@ -383,7 +387,7 @@ void Editor::ProcessWindow()
                                                 {
                                                     e.bSelected = true;
                                                 }
-                                                if (!strcmp(e.FileName, entry.FileName))
+                                                if (!strcmp(e.FileName, pEntry->FileName))
                                                 {
                                                     prevSelected = false;
                                                 }
@@ -402,7 +406,7 @@ void Editor::ProcessWindow()
                                             }
                                             e.bRename  = false;
                                         }
-                                        entry.bSelected = true;
+                                        pEntry->bSelected = true;
                                     }
 
                                     if (styleApplied)
@@ -412,20 +416,19 @@ void Editor::ProcessWindow()
                                     }
                                     if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
                                     {
-                                        pContextEntry = pContextEntry ? nullptr : &entry;
+                                        pContextEntry = pContextEntry ? nullptr : pEntry;
                                     }
                                 }
 
                                 ImGui::TableNextColumn();
-                                ImGui::Text(entry.Type.c_str());
+                                ImGui::Text(pEntry->Type.c_str());
                                 ImGui::TableNextColumn();
-                                ImGui::Text(std::format("0x{:X}", entry.Offset).c_str());
+                                ImGui::Text(std::format("0x{:X}", pEntry->Offset).c_str());
                                 ImGui::TableNextColumn();
-                                ImGui::Text("%d kb", entry.Size*2);
+                                ImGui::Text("%d kb", pEntry->Size*2);
                             }
                         }
                     }
-                    clipper.End();
                     ProcessContextMenu();
                     ImGui::EndTable();
                 }
@@ -456,6 +459,7 @@ void Editor::ProcessWindow()
                 {
                     std::string fileNames = WinDialogs::ImportFiles();
                     pSelectedArchive->ImportEntries(fileNames);
+                    pSelectedArchive->UpdateSelectList(Filter.InputBuf);
                 }
                 ImGui::SameLine();
 
@@ -494,6 +498,7 @@ void Editor::ProcessWindow()
                         ),
                         pSelectedArchive->EntryList.end()
                     ); 
+                    pSelectedArchive->UpdateSelectList(Filter.InputBuf);
                 }
                 ImGui::SameLine();
                 if (ImGui::Button("Dump list", sz))

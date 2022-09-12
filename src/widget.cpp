@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "widget.h"
 
-void Widget::Filter(const char* label, ImGuiTextFilter& filter, const char* hint)
+bool Widget::Filter(const char* label, ImGuiTextFilter& filter, const char* hint)
 {
-    filter.Draw(label);
+    bool active = filter.Draw(label);
 
     if (strlen(filter.InputBuf) == 0)
     {
@@ -15,6 +15,7 @@ void Widget::Filter(const char* label, ImGuiTextFilter& filter, const char* hint
 
         drawlist->AddText(min, ImGui::GetColorU32(ImGuiCol_TextDisabled), hint);
     }
+    return active;
 }
 
 ImVec2 Widget::CalcSize(short count, bool spacing, bool column)

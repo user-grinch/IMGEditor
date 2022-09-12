@@ -11,7 +11,7 @@ public:
     static ImVec2 CalcSize(short count = 1, bool spacing = true, bool column = false);
 
     // ImGui::TextFilter with hint support
-    static void Filter(const char* label, ImGuiTextFilter& filter, const char* hint);
+    static bool Filter(const char* label, ImGuiTextFilter& filter, const char* hint);
     
     // Text aligned to the center of the window
     static void TextCentered(const std::string& text);

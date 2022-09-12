@@ -13,6 +13,7 @@ private:
     static inline CSimpleIniA Config;
     static inline std::string ConfigPath = "";
     static inline ImVec2 MonitorScale = {0, 0};
+    static inline ImGuiTextFilter Filter;
 
     // Popups
     static void AboutPopUp();
