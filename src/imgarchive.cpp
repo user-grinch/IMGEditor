@@ -10,6 +10,7 @@ IMGArchive::IMGArchive(std::string Path, bool CreateNew)
         this->FileName = Path;
         this->bCreateNew = true;
         AddLogMessage("Created archive");
+        Parser = Parser::Get();
     }
     else
     {
@@ -25,11 +26,11 @@ IMGArchive::IMGArchive(std::string Path, bool CreateNew)
             Parser = nullptr;
             break;
         }
+    }
 
-        if (Parser)
-        {
-            Parser->Open(this);
-        }
+    if (Parser)
+    {
+        Parser->Open(this);
     }
 } 
 

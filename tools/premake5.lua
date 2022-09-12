@@ -48,6 +48,10 @@ project "IMGEditorApp"
         "depend"
     }
 
+    linkoptions { 
+        "-IGNORE:4099" 
+    }
+
     files { 
         "../src/**",
         "../resource/*.rc"

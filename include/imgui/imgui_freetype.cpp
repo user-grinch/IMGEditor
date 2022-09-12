@@ -40,7 +40,8 @@
 #include FT_MODULE_H            // <freetype/ftmodapi.h>
 #include FT_GLYPH_H             // <freetype/ftglyph.h>
 #include FT_SYNTHESIS_H         // <freetype/ftsynth.h>
-#pragma warning(push, 0)
+#pragma warning(push)
+#pragma warning( disable : 4099)
 #pragma comment(lib, "freetype.lib")
 #pragma warning(pop)
 

@@ -40,10 +40,13 @@ struct ProgressInfo
 class IMGArchive;
 class IParser;
 
+// Used to pass info between threads
 struct ArchiveInfo
 {
     IMGArchive* pArc;
     std::string path;
+    eImgVer outVer = eImgVer::Unknown;  // version for the output archive
+    bool removeExisting = true;
 };
 
 /*
@@ -58,7 +61,7 @@ public:
     std::vector<EntryInfo> EntryList;
     std::vector<std::string> LogList;
     ProgressInfo ProgressBar;
-    eImgVer ImageVersion = eImgVer::Unknown;
+    eImgVer ImageVersion = eImgVer::Two;
     IParser *Parser = nullptr;
 
     bool bOpen = true;

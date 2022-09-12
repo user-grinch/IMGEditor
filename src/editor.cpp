@@ -135,44 +135,48 @@ void Editor::ProcessMenuBar()
                 }
             }
         }
-        if (ImGui::MenuItem("Save") && !pSelectedArchive->ProgressBar.bInUse)
+        if (ImGui::MenuItem("Save", NULL, false, pSelectedArchive && !pSelectedArchive->Path.empty()))
         {
-            if (pSelectedArchive->Path == "")
+            if ( !pSelectedArchive->ProgressBar.bInUse)
             {
-                pSelectedArchive->Path = WinDialogs::SaveFile(pSelectedArchive->FileName + ".img");
+                ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, pSelectedArchive->Path, 
+                                    pSelectedArchive->ImageVersion};
+                CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::Save, info, NULL, NULL);
+                pSelectedArchive->AddLogMessage("Archive saved");
             }
-            ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, pSelectedArchive->Path};
-            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::Save, info, NULL, NULL);
-            pSelectedArchive->AddLogMessage("Archive saved");
         }
-        if (ImGui::MenuItem("Save as...") && !pSelectedArchive->ProgressBar.bInUse)
+        if (ImGui::MenuItem("Save as...", NULL, false, pSelectedArchive))
         {
-            std::string path = WinDialogs::SaveFile(pSelectedArchive->FileName + ".img");
-            ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
-            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::Save, info, NULL, NULL);
-            pSelectedArchive->AddLogMessage("Archive saved");
+            if (!pSelectedArchive->ProgressBar.bInUse)
+            {   
+                std::string path = pSelectedArchive->FileName + ".img";
+                eImgVer ver = static_cast<eImgVer>(WinDialogs::SaveArchive(path)-1);
+                ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path, ver,false};
+                CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::Save, info, NULL, NULL);
+                pSelectedArchive->AddLogMessage("Archive saved");
+            }
         }
         ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Edit"))
     {
-        if (ImGui::MenuItem("Import"))
+        if (ImGui::MenuItem("Import", NULL, false, pSelectedArchive))
         {
             std::string fileNames = WinDialogs::ImportFiles();
             pSelectedArchive->ImportEntries(fileNames);
         }
-        if (ImGui::MenuItem("Import & replace"))
+        if (ImGui::MenuItem("Import & replace", NULL, false, pSelectedArchive))
         {
             std::string fileNames = WinDialogs::ImportFiles();
             pSelectedArchive->ImportEntries(fileNames, true);
         }
-        if (ImGui::MenuItem("Export all", NULL, false, !pSelectedArchive->ProgressBar.bInUse))
+        if (ImGui::MenuItem("Export all", NULL, false, pSelectedArchive && !pSelectedArchive->ProgressBar.bInUse))
         {
             std::string path = WinDialogs::SaveFolder();
             ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
             CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportAll, info, NULL, NULL);
         }
-        if (ImGui::MenuItem("Export selected", NULL, false, !pSelectedArchive->ProgressBar.bInUse))
+        if (ImGui::MenuItem("Export selected", NULL, false, pSelectedArchive && !pSelectedArchive->ProgressBar.bInUse))
         {
             std::string path = WinDialogs::SaveFolder();
             ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
@@ -267,7 +271,7 @@ void Editor::ProcessContextMenu()
 
         if (ImGui::MenuItem("Export"))
         {
-            std::string path = WinDialogs::SaveFile(pContextEntry->FileName);
+            std::string path = WinDialogs::ExportFile(pContextEntry->FileName);
             pSelectedArchive->ExportEntry(pContextEntry, path);
             pContextEntry = nullptr;
         }

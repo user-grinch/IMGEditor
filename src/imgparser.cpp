@@ -126,12 +126,8 @@ void Parser::Import(IMGArchive *pArc, const std::string &path, bool replace)
 
 void Parser::Save(ArchiveInfo *pInfo)
 {
-    if (pInfo->pArc->Path == "")
-    {
-        return;
-    }
-
     eImgVer ver = pInfo->pArc->ImageVersion;
+    eImgVer outVer = pInfo->outVer;
     pInfo->pArc->ProgressBar.bInUse = true;
     std::string tempPath = pInfo->path + ".temp";
     FILE *fImg = fopen(tempPath.c_str(), "wb");
@@ -142,18 +138,18 @@ void Parser::Save(ArchiveInfo *pInfo)
     std::string dirPath = "";
     std::string tempDirPath = "";
 
-    if (ver == eImgVer::One)
+    if (outVer == eImgVer::One)
     {
-        dirPath = pInfo->path;
-        dirPath.replace(dirPath.end()-3, dirPath.end(), "dir");
+        dirPath = pInfo->path.c_str();
+        dirPath.replace(dirPath.find("img"), sizeof("img") , "dir");
         tempDirPath = dirPath + ".temp";
         fDir = fopen(tempDirPath.c_str(), "wb");
     }   
 
-    if (fImg && (fDir || ver == eImgVer::Two))
+    if (fImg)
     {
         // v2 header
-        if (ver == eImgVer::Two)
+        if (outVer == eImgVer::Two)
         {
             fwrite("VER2", 4, 1, fImg);
             uint32_t TotalEntries = static_cast<uint32_t>(pInfo->pArc->EntryList.size());
@@ -161,7 +157,7 @@ void Parser::Save(ArchiveInfo *pInfo)
         }
 
         // dir entry
-        uint32_t offset = ver == eImgVer::One ? 0 : 4096; // start offset
+        uint32_t offset = (outVer == eImgVer::One) ? 0 : 4096; // start offset
         size_t index = 0;
         size_t total = pInfo->pArc->EntryList.size();
         for (EntryInfo &e : pInfo->pArc->EntryList)
@@ -191,7 +187,7 @@ void Parser::Save(ArchiveInfo *pInfo)
 
                 long pos = 8 + static_cast<long>(index) * 32;
 
-                if (ver == eImgVer::One)
+                if (outVer == eImgVer::One)
                 {
                     fwrite(&e.Offset, sizeof(e.Offset), 1, fDir);
                     fwrite(&e.Size, sizeof(e.Size), 1, fDir);
@@ -261,7 +257,11 @@ void Parser::Save(ArchiveInfo *pInfo)
     if (fImg)
     {
         fclose(fImg);
-        std::filesystem::remove(pInfo->pArc->Path);
+
+        if (pInfo->removeExisting)
+        {
+            std::filesystem::remove(pInfo->pArc->Path);
+        }
         std::filesystem::rename(tempPath, pInfo->path);
     }
 
@@ -269,5 +269,9 @@ void Parser::Save(ArchiveInfo *pInfo)
     pInfo->pArc->Path = pInfo->path;
     pInfo->pArc->FileName = std::move(std::filesystem::path(pInfo->path).filename().stem().string());
     pInfo->pArc->ProgressBar.bInUse = false;
+    if (outVer != eImgVer::Unknown)
+    {
+        pInfo->pArc->ImageVersion = outVer;
+    }
     delete pInfo;
 }

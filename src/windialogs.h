@@ -9,6 +9,7 @@ public:
 
     static std::string ImportFiles();
     static std::string OpenFile();
-    static std::string SaveFile(std::string fileName);
+    static size_t SaveArchive(std::string &path);
+    static std::string ExportFile(const char* fileName);
     static std::string SaveFolder();
 };

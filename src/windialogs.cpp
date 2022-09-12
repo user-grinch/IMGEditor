@@ -5,7 +5,7 @@
 std::string WinDialogs::OpenFile()
 {
     OPENFILENAME ofn;   
-    TCHAR szFile[260] = { 0 }; 
+    TCHAR szFile[MAX_PATH] = { 0 }; 
 
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
@@ -45,16 +45,18 @@ std::string WinDialogs::ImportFiles()
     return "";
 }
 
-std::string WinDialogs::SaveFile(std::string fileName)
+std::string WinDialogs::ExportFile(const char* fileName)
 {
-    fileName.resize(255);
     OPENFILENAME ofn;   
+    TCHAR szFile[MAX_PATH] = { 0 }; 
+    strcpy(szFile, fileName);
+
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = GetActiveWindow();
-    ofn.lpstrFile = fileName.data();
-    ofn.nMaxFile = static_cast<DWORD>(fileName.capacity());
-    ofn.lpstrFilter = "IMG Archive\0*.IMG\0All\0*.*\0";
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = "All\0*.*\0";
     ofn.nFilterIndex = 1;
     ofn.lpstrFileTitle = NULL;
     ofn.nMaxFileTitle = 0;
@@ -67,6 +69,26 @@ std::string WinDialogs::SaveFile(std::string fileName)
     }
 
     return "";
+}
+
+size_t WinDialogs::SaveArchive(std::string &path)
+{
+    path.resize(255);
+    OPENFILENAME ofn;   
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = GetActiveWindow();
+    ofn.lpstrFile = path.data();
+    ofn.nMaxFile = static_cast<DWORD>(path.capacity());
+    ofn.lpstrFilter = "IMG Archive v1 (III, VC, BULLY)\0*.IMG\0IMG Archive v2 (SA)\0*.IMG\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrFileTitle = NULL;
+    ofn.nMaxFileTitle = 0;
+    ofn.lpstrInitialDir = NULL;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
+
+   GetSaveFileName(&ofn);
+    return static_cast<size_t>(ofn.nFilterIndex);
 }
 
 std::string WinDialogs::SaveFolder()
