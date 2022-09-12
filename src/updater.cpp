@@ -31,7 +31,7 @@ void Updater::Process()
         return;
     }
 
-    const char* link = "https://api.github.com/repos/user-grinch/Cheat-Menu/tags";
+    const char* link = "https://api.github.com/repos/user-grinch/IMGEditor/tags";
     char buf[MAX_PATH];
     GetModuleFileName(NULL, buf, MAX_PATH);
     std::string path = std::filesystem::path(buf).remove_filename().string() + "ver.json";
