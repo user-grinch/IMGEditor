@@ -17,6 +17,7 @@ namespace Ui
         CVector2 Size = { 600, 400 };
         std::function<void()> LayerFunc = nullptr, MenuBarFunc = nullptr, PopupFunc = nullptr,
                             CleanupFunc = nullptr;
+        std::function<void(const char*)> DragDropFunc = nullptr;
     };
 }
 

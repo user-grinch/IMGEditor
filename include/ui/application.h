@@ -25,6 +25,9 @@ namespace Ui
         // Start the application loop
         void Run();
 
+        // Set the poup function
         void SetPopup(std::function<void()> Func);
+
+        void CallDropHandler(const char *path);
     };
 }

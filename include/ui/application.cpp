@@ -32,9 +32,22 @@ void Ui::Application::SetTheme(Ui::eTheme theme)
     Ui::Renderer::SetThemeMode(theme);
 }
 
+void Ui::Application::CallDropHandler(const char* path)
+{
+    if (Info.DragDropFunc)
+    {
+        Info.DragDropFunc(path);
+    }
+}
+
 void Ui::Application::Run()
 {
     bool exit = false;
+    if (Info.DragDropFunc)
+    {
+        DragAcceptFiles(GetActiveWindow(), TRUE);
+    }
+
     while (!exit)
     {
         // Handle windows messages
@@ -55,5 +68,10 @@ void Ui::Application::Run()
         }
 
         Renderer::DrawLayer(Info);
+    }
+
+    if (Info.DragDropFunc)
+    {
+        DragAcceptFiles(GetActiveWindow(), FALSE);
     }
 }

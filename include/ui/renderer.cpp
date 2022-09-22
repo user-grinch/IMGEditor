@@ -3,6 +3,7 @@
 #include "imgui/imgui_impl_win32.h"
 #include <dwmapi.h>
 #include "resource.h"
+#include "application.h"
 
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
@@ -244,8 +245,11 @@ LRESULT WINAPI Ui::Renderer::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
             return 0;
         break;
     case WM_DESTROY:
-        ::PostQuitMessage(0);
+        PostQuitMessage(0);
         return 0;
+    case WM_DROPFILES:
+        std::string str = (const char*)wParam;
+	    return 0;
     }
     return ::DefWindowProc(hWnd, msg, wParam, lParam);
 }

@@ -44,16 +44,15 @@ void Editor::UpdatePopUp()
     Widget::TextCentered("Current version: " EDITOR_VERSION);
     Widget::TextCentered(std::format("Latest version: {}", Updater::GetUpdateVersion()));
     ImGui::Spacing();
-    Widget::TextCentered("Update to to continue using the Editor");
+    Widget::TextCentered("Update to continue using the Editor");
     ImGui::Spacing();
-    ImGui::TextWrapped("New versions may contain new features & bug fixes. Updates will become optional once the Editor reaches stable.");
+    ImGui::TextWrapped("Newer versions may contain more features & bug fixes. Updates will be optional once the editor is stable.");
     ImGui::Dummy(ImVec2(0, 15));
     if (ImGui::Button("Download update", Widget::CalcSize()))
     {
         ShellExecute(nullptr, "open", "https://github.com/user-grinch/IMGEditor/releases/", nullptr, nullptr, SW_SHOWNORMAL);
     }
-    
-    ImGui::Dummy(ImVec2(0, 15));
+    ImGui::Spacing();
     ImGui::Text("Copyright Grinch_ 2022-2023. All rights reserved.");
 }
 
@@ -70,7 +69,7 @@ void Editor::WelcomePopup()
     ImGui::Text("3. GTA SA");
     ImGui::Text("4. Bully Scholarship Edition");
     ImGui::Spacing();
-    ImGui::TextWrapped("Directly open archives in IMG Editor by windows modifying file association.");
+    ImGui::TextWrapped("Directly open archives in IMG Editor by setting windows file association.");
     ImGui::Spacing();
     if (ImGui::Button("Help with file association",  Widget::CalcSize(1)))
     {
@@ -442,12 +441,12 @@ void Editor::ProcessWindow()
                                                 // allow multiselect when ctrl is pressed
                                                 if (!(ImGui::IsKeyDown(VK_LCONTROL) || ImGui::IsKeyDown(VK_RCONTROL)))
                                                 {
-                                                    e.bSelected  = false;
+                                                    e.bSelected = false;
                                                 }
                                             }
                                             e.bRename  = false;
                                         }
-                                        pEntry->bSelected = true;
+                                        pEntry->bSelected = !pEntry->bSelected;
                                     }
 
                                     if (styleApplied)
