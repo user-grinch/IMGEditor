@@ -123,7 +123,7 @@ void Editor::ProcessMenuBar()
             if (DoesArchiveExist("Untitled"))
             {
                 // 50 is kinda overkill
-                for (size_t i = 2; i < 50; ++i)
+                for (size_t i = 2; i < 20; ++i)
                 {
                     std::string name = std::format("Untitled({})", i);
                     if (!DoesArchiveExist(name))
@@ -620,11 +620,14 @@ void Editor::ProcessWindow()
 
 void Editor::AddArchiveEntry(IMGArchive &&archive)
 {
-    for (IMGArchive &arc : ArchiveList)
+    if (!archive.bCreateNew)
     {
-        if (arc.Path == archive.Path)
+         for (IMGArchive &arc : ArchiveList)
         {
-            return;
+            if (arc.Path == archive.Path)
+            {
+                return;
+            }
         }
     }
 
