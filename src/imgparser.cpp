@@ -21,14 +21,14 @@ void Parser::Open(IMGArchive *pArc)
             // fetch size
             if (pArc->ImageVersion == eImgVer::One)
             {
-                fseek(fp, 0, SEEK_END);
+                _fseeki64(fp, 0, SEEK_END);
                 TotalEntries = ftell(fp) / 32; // size of dir 
-                fseek(fp, 0, SEEK_SET);
+                _fseeki64(fp, 0, SEEK_SET);
             }
             else
             {
                 // We already know it's v2 archive
-                fseek(fp, 4, 0);
+                _fseeki64(fp, 4, 0);
                 fread(&TotalEntries, sizeof(TotalEntries), 1, fp);
             }
 
@@ -55,8 +55,10 @@ void Parser::Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::string& file
 
     if (pOut && pImg)
     {
-        fseek(pImg, pEntry->Offset*2048, 0);
+        size_t offset = pEntry->Offset*2048;
         size_t size = pEntry->Size*2048;
+
+        _fseeki64(pImg, offset, 0);
         char *buf = new char[size + 1];
         if (buf)
         {
@@ -66,8 +68,6 @@ void Parser::Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::string& file
             {
                 pMgr->AddLogMessage(std::format("Exported {}", pEntry->FileName));
             }
-            buf[pEntry->Size] ='\0';
-            
             delete[] buf;
         }
     }
@@ -168,13 +168,13 @@ void Parser::Save(ArchiveInfo *pInfo)
             if (e.bImported)
             {
                 fFile = fopen(e.Path.c_str(), "rb");
-                fseek(fFile, 0, SEEK_END);
+                _fseeki64(fFile, 0, SEEK_END);
                 size = ftell(fFile);
-                fseek(fFile, 0, SEEK_SET);
+                _fseeki64(fFile, 0, SEEK_SET);
             }
             else
             {
-                fseek(fIn, e.Offset*2048, 0);
+                _fseeki64(fIn, e.Offset*2048, 0);
                 size = e.Size*2048;
             }
 
@@ -194,11 +194,11 @@ void Parser::Save(ArchiveInfo *pInfo)
                 }
                 else
                 {
-                    fseek(fImg, pos, 0);
+                    _fseeki64(fImg, pos, 0);
                     fwrite(&e.Offset, sizeof(e.Offset), 1, fImg);
                     fwrite(&e.Size, sizeof(e.Size), 1, fImg);
                     fwrite(e.FileName, sizeof(e.FileName), 1, fImg);
-                    fseek(fImg, offset, 0);
+                    _fseeki64(fImg, offset, 0);
                 }
 
                 fwrite(buf, size, 1, fImg);
