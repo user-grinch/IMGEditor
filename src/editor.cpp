@@ -382,8 +382,9 @@ void Editor::ProcessWindow()
                     ImGui::TableSetupColumn("Offset", ImGuiTableColumnFlags_WidthFixed, 50 * scl);
                     ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, 50 * scl);
                     ImGui::TableHeadersRow();
-
-                    ImGuiListClipper clipper(static_cast<int>(pSelectedArchive->SelectedList.size()), ImGui::GetTextLineHeight());
+                   
+                    float height = ImGui::GetItemRectSize().y;
+                    ImGuiListClipper clipper(static_cast<int>(pSelectedArchive->SelectedList.size()), height);
                     while (clipper.Step())
                     {
                         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
@@ -393,7 +394,6 @@ void Editor::ProcessWindow()
                             {
                                 ImGui::TableNextRow();
                                 ImGui::TableNextColumn();
-
                                 // Renaming system
                                 if (pEntry->bRename)
                                 {
