@@ -22,7 +22,7 @@ void Parser::Open(IMGArchive *pArc)
             if (pArc->ImageVersion == eImgVer::One)
             {
                 _fseeki64(fp, 0, SEEK_END);
-                TotalEntries = ftell(fp) / 32; // size of dir 
+                TotalEntries = static_cast<uint32_t>(_ftelli64(fp) / 32); // size of dir 
                 _fseeki64(fp, 0, SEEK_SET);
             }
             else
@@ -147,18 +147,18 @@ void Parser::Save(ArchiveInfo *pInfo)
 
     if (fImg)
     {
+        size_t offset = 0;
+        size_t index = 0;
+        size_t total = pInfo->pArc->EntryList.size();
+
         // v2 header
         if (outVer == eImgVer::Two)
         {
             fwrite("VER2", 4, 1, fImg);
-            uint32_t TotalEntries = static_cast<uint32_t>(pInfo->pArc->EntryList.size());
-            fwrite(&TotalEntries, sizeof(TotalEntries), 1, fImg);
+            fwrite(&total, sizeof(total), 1, fImg);
+            offset = 0x300000; // start offset, max 98k items
         }
-
-        // dir entry
-        uint32_t offset = (outVer == eImgVer::One) ? 0 : 4096; // start offset
-        size_t index = 0;
-        size_t total = pInfo->pArc->EntryList.size();
+        
         for (EntryInfo &e : pInfo->pArc->EntryList)
         {
             size_t size = 0;
@@ -169,12 +169,12 @@ void Parser::Save(ArchiveInfo *pInfo)
             {
                 fFile = fopen(e.Path.c_str(), "rb");
                 _fseeki64(fFile, 0, SEEK_END);
-                size = ftell(fFile);
+                size = _ftelli64(fFile);
                 _fseeki64(fFile, 0, SEEK_SET);
             }
             else
             {
-                _fseeki64(fIn, e.Offset*2048, 0);
+                _fseeki64(fIn, e.Offset*2048, SEEK_SET);
                 size = e.Size*2048;
             }
 
@@ -182,9 +182,7 @@ void Parser::Save(ArchiveInfo *pInfo)
             if (buf)
             {
                 fread(buf, size, 1, e.bImported? fFile : fIn);
-                e.Offset = offset/2048;
-
-                long pos = 8 + static_cast<long>(index) * 32;
+                e.Offset = static_cast<uint32_t>(offset/2048);
 
                 if (outVer == eImgVer::One)
                 {
@@ -194,11 +192,12 @@ void Parser::Save(ArchiveInfo *pInfo)
                 }
                 else
                 {
-                    _fseeki64(fImg, pos, 0);
+                    long dirOffset = static_cast<long>(0x8 + 0x20 * index);
+                    _fseeki64(fImg, dirOffset, SEEK_SET);
                     fwrite(&e.Offset, sizeof(e.Offset), 1, fImg);
                     fwrite(&e.Size, sizeof(e.Size), 1, fImg);
                     fwrite(e.FileName, sizeof(e.FileName), 1, fImg);
-                    _fseeki64(fImg, offset, 0);
+                    _fseeki64(fImg, offset, SEEK_SET);
                 }
 
                 fwrite(buf, size, 1, fImg);
@@ -236,7 +235,7 @@ void Parser::Save(ArchiveInfo *pInfo)
                 return;
             }
             
-            offset += e.Size*2048; // add the sector for this entry
+            offset += size; // add the sector for this entry
             ++index;
         }        
     }
