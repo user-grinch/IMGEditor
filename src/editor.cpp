@@ -543,8 +543,7 @@ void Editor::ProcessWindow()
                 ImGui::SameLine();
                 if (ImGui::Button("Dump list", sz))
                 {
-                    
-                    FILE *fp = fopen(std::format("C:/Users/User/Desktop/{}.txt", pSelectedArchive->FileName).c_str(), "w");
+                    FILE *fp = fopen(std::format("C:/Users/Public/Desktop/{}.txt", pSelectedArchive->FileName).c_str(), "w");
                     if (fp)
                     {
                         fprintf(fp, "Dumped list from %s.img\n", pSelectedArchive->FileName.c_str());
