@@ -50,7 +50,24 @@ void Parser::Open(IMGArchive *pArc)
 
 void Parser::Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::string& filePath, bool logMsg)
 {
-    FILE *pOut = fopen(filePath.c_str(), "wb+");
+    std::string path = filePath;
+    size_t i = 1;
+    FILE *pF = fopen(path.c_str(), "r");
+    while (pF != NULL) {
+        ++i;
+        std::string temp = std::format("({})", i);
+        size_t pos = path.find_last_of("."); 
+        path.insert(pos , temp);
+        if (pF) {
+            fclose(pF);
+        }
+        pF = fopen(path.c_str(), "r");
+    }
+    if (pF) {
+        fclose(pF);
+    }
+
+    FILE *pOut = fopen(path.c_str(), "wb+");
     FILE *pImg = fopen(pMgr->Path.c_str(), "rb");
 
     if (pOut && pImg)
