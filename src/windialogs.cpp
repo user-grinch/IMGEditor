@@ -30,16 +30,16 @@ std::string WinDialogs::OpenFile()
 std::string WinDialogs::ImportFiles()
 {
     OPENFILENAME ofn = { sizeof ofn };
-    char file[2048];
-    file[0] = '\0';
-    ofn.lpstrFile = file;
-    ofn.nMaxFile = 2048;
+    ofn.nMaxFile = 1 << 20;
+    ofn.lpstrFile = (LPSTR) calloc(ofn.nMaxFile, 1);
     ofn.hwndOwner = NULL;
     ofn.Flags = OFN_ALLOWMULTISELECT | OFN_EXPLORER;
 
-    if (GetOpenFileName(&ofn))
+    if (ofn.lpstrFile && GetOpenFileName(&ofn))
     {
-        return std::string(ofn.lpstrFile, 2048);
+        std::string paths = std::string(ofn.lpstrFile, ofn.nMaxFile);
+        free(ofn.lpstrFile);
+        return paths;
     }
 
     return "";

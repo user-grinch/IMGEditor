@@ -143,7 +143,7 @@ void IMGArchive::ImportEntries(ArchiveInfo *pInfo)
             }
 
             temp += "\0";
-            if (std::filesystem::path(temp).extension() == "") // skip folder paths
+            if (std::filesystem::is_directory(temp)) // skip folders
             {
                 rootDir = std::move(temp) + "\\";
             }
