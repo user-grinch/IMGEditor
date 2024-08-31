@@ -130,9 +130,8 @@ void Parser::Import(IMGArchive *pArc, const std::string &path, bool replace)
         );
     }
 
-    EntryInfo info;
+    EntryInfo info = {0};
     strcpy(info.FileName, name.c_str());
-    info.FileName[23] = '\0';
     info.Path = path;
     info.bImported = true;
     info.Type = IMGArchive::GetFileType(info.FileName);
