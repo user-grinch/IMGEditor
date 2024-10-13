@@ -35,7 +35,7 @@ void Editor::AboutPopUp()
         ShellExecute(nullptr, "open", "https://www.patreon.com/grinch_", nullptr, nullptr, SW_SHOWNORMAL);
     }
     ImGui::Spacing();
-    ImGui::Text("Copyright Grinch_ 2022-2023. All rights reserved.");
+    ImGui::Text("Copyright Grinch_ 2022-2025. All rights reserved.");
 }
 
 void Editor::UpdatePopUp()
@@ -53,7 +53,7 @@ void Editor::UpdatePopUp()
         ShellExecute(nullptr, "open", "https://github.com/user-grinch/IMGEditor/releases/", nullptr, nullptr, SW_SHOWNORMAL);
     }
     ImGui::Spacing();
-    ImGui::Text("Copyright Grinch_ 2022-2023. All rights reserved.");
+    ImGui::Text("Copyright Grinch_ 2022-2025. All rights reserved.");
 }
 
 void Editor::WelcomePopup()
@@ -86,7 +86,7 @@ void Editor::WelcomePopup()
         ShellExecute(nullptr, "open", "https://www.patreon.com/grinch_", nullptr, nullptr, SW_SHOWNORMAL);
     }
     ImGui::Spacing();
-    ImGui::Text("Copyright Grinch_ 2022-2023. All rights reserved.");
+    ImGui::Text("Copyright Grinch_ 2022-2025. All rights reserved.");
 }
 
 const char* Editor::GetFilterText()
