@@ -56,7 +56,7 @@ void Parser::Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::wstring& fil
 {
     std::wstring path = filePath;
     size_t i = 1;
-    FILE *pF = _wfopen(path.c_str(), L"r");
+    FILE *pF = _wfopen(path.c_str(), L"r+");
     while (pF != NULL) {
         ++i;
         std::wstring temp = std::format(L"({})", i);
@@ -203,12 +203,14 @@ void Parser::Save(ArchiveInfo *pInfo)
             {
                 fread(buf, size, 1, e.bImported? fFile : fIn);
                 e.Offset = static_cast<uint32_t>(offset/2048);
-
+                char nameBuf[24]; 
+                assert(sizeof(nameBuf) != sizeof(e.FileName)); 
+                ConvertWideCharToChar(e.FileName, nameBuf, sizeof(nameBuf));
                 if (outVer == eImgVer::One)
                 {
                     fwrite(&e.Offset, sizeof(e.Offset), 1, fDir);
                     fwrite(&e.Size, sizeof(e.Size), 1, fDir);
-                    fwrite(e.FileName, sizeof(e.FileName), 1, fDir);
+                    fwrite(nameBuf, sizeof(nameBuf), 1, fDir);
                 }
                 else
                 {
@@ -216,7 +218,7 @@ void Parser::Save(ArchiveInfo *pInfo)
                     _fseeki64(fImg, dirOffset, SEEK_SET);
                     fwrite(&e.Offset, sizeof(e.Offset), 1, fImg);
                     fwrite(&e.Size, sizeof(e.Size), 1, fImg);
-                    fwrite(e.FileName, sizeof(e.FileName), 1, fImg);
+                    fwrite(nameBuf, sizeof(nameBuf), 1, fImg);
                     _fseeki64(fImg, offset, SEEK_SET);
                 }
 

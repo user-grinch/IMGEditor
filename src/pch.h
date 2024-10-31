@@ -8,3 +8,4 @@
 #include "imgui/imgui.h"
 
 void ConvertCharToWideChar(const char* charBuffer, wchar_t* wideCharBuffer, size_t wideCharBufferSize);
+void ConvertWideCharToChar(const wchar_t* wideCharBuffer, char* charBuffer, size_t charBufferSize);

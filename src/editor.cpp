@@ -222,6 +222,7 @@ void Editor::ProcessContextMenu()
     {
         if (ImGui::MenuItem("Delete"))
         {
+            pContextEntry->bSelected = true;
             pSelectedArchive->EntryList.erase (
                 std::remove_if (
                     pSelectedArchive->EntryList.begin(), 
@@ -241,6 +242,7 @@ void Editor::ProcessContextMenu()
 
         if (ImGui::MenuItem("Export"))
         {
+            pContextEntry->bSelected = true;
             std::wstring path = WinDialogs::SaveFolder();
             if (path != L"") {
                 ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
@@ -308,8 +310,7 @@ void Editor::ProcessWindow()
             
                 // Search bar
                 ImGui::SetNextItemWidth(ImGui::GetColumnWidth() - style.ItemSpacing.x - style.WindowPadding.x);
-                std::wstring hint = std::format(L"Search  {}", archive.Path);
-                if (Widget::Filter("##Search", Filter, converter.to_bytes(hint).c_str()))
+                if (Widget::Filter("##Search", Filter, "Search"))
                 {
                     wchar_t buf[256];
                     ConvertCharToWideChar(Filter.InputBuf, buf, sizeof(buf));
