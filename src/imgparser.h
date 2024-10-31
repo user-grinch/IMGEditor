@@ -8,10 +8,10 @@ public:
     virtual void Open(IMGArchive *pMgr) = 0;
 
     // Exports an entity form the archive
-    virtual void Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::string& filePath, bool logMsg = true) = 0;
+    virtual void Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::wstring& filePath, bool logMsg = true) = 0;
 
     // Imports an entity to the archive
-    virtual void Import(IMGArchive *pArc, const std::string &path, bool replace) = 0;
+    virtual void Import(IMGArchive *pArc, const std::wstring &path, bool replace) = 0;
 
     // Rebuilds the archive & saves changes
     virtual void Save(ArchiveInfo *pInfo) = 0;
@@ -35,7 +35,7 @@ public:
     }
 
     void Open(IMGArchive *pMgr);
-    void Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::string& filePath, bool logMsg = true);
-    void Import(IMGArchive *pArc, const std::string &path, bool replace);
+    void Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::wstring& filePath, bool logMsg = true);
+    void Import(IMGArchive *pArc, const std::wstring &path, bool replace);
     void Save(ArchiveInfo *pInfo);
 };

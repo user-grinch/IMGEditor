@@ -15,6 +15,18 @@ private:
     static inline ImVec2 MonitorScale = {0, 0};
     static inline ImGuiTextFilter Filter = "";
 
+
+    // Action
+    static void NewArchive();
+    static void OpenArchive();
+    static void SaveArchive();
+    static void SaveArchiveAs();
+    static void ImportFiles();
+    static void ImportAndReplaceFiles();
+    static void ExportAll();
+    static void ExportSelected();
+
+
     // Popups
     static void AboutPopUp();
     static void UpdatePopUp();
@@ -30,10 +42,10 @@ public:
     static void AddArchiveEntry(IMGArchive &&archive);
 
     // Returns true if archive with the given name already exists
-    static bool DoesArchiveExist(const std::string &name);
+    static bool DoesArchiveExist(const std::wstring &name);
 
     // Returns current search filter text
-    static const char* GetFilterText();
+    static const wchar_t* GetFilterText();
 
     // Initializes & runs the IMGEditor
     static void Run();

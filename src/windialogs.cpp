@@ -1,100 +1,108 @@
 #include "pch.h"
 #include "windialogs.h"
-#include <shobjidl.h> 
+#include <shobjidl.h>
+#include <commdlg.h>
+#include <string>
+#include <iostream>
+#include <locale>
+#include <codecvt>
 
-std::string WinDialogs::OpenFile()
+std::wstring WinDialogs::OpenFile()
 {
-    OPENFILENAME ofn;   
-    TCHAR szFile[MAX_PATH] = { 0 }; 
+    OPENFILENAMEW ofn;   // Use OPENFILENAMEW for Unicode
+    wchar_t szFile[MAX_PATH] = { 0 }; 
 
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = NULL;
     ofn.lpstrFile = szFile;
     ofn.nMaxFile = sizeof(szFile);
-    ofn.lpstrFilter = "IMG Archive\0*.IMG\0";
+    ofn.lpstrFilter = L"IMG Archive\0*.IMG\0";  // Use wide strings
     ofn.nFilterIndex = 1;
     ofn.lpstrFileTitle = NULL;
     ofn.nMaxFileTitle = 0;
     ofn.lpstrInitialDir = NULL;
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
-    if (GetOpenFileName(&ofn))
+    if (GetOpenFileNameW(&ofn)) // Use GetOpenFileNameW for Unicode
     {
-        return std::string(ofn.lpstrFile);
+        return std::wstring(ofn.lpstrFile);
     }
 
-    return "";
+    return L"";
 }
 
-std::string WinDialogs::ImportFiles()
+std::wstring WinDialogs::ImportFiles()
 {
-    OPENFILENAME ofn = { sizeof ofn };
+    OPENFILENAMEW ofn = { sizeof ofn };
     ofn.nMaxFile = 1 << 20;
-    ofn.lpstrFile = (LPSTR) calloc(ofn.nMaxFile, 1);
+    ofn.lpstrFile = (LPWSTR) calloc(ofn.nMaxFile, sizeof(wchar_t)); // Allocate wide char
     ofn.hwndOwner = NULL;
     ofn.Flags = OFN_ALLOWMULTISELECT | OFN_EXPLORER;
 
-    if (ofn.lpstrFile && GetOpenFileName(&ofn))
+    if (ofn.lpstrFile && GetOpenFileNameW(&ofn)) // Use GetOpenFileNameW
     {
-        std::string paths = std::string(ofn.lpstrFile, ofn.nMaxFile);
+        std::wstring paths = std::wstring(ofn.lpstrFile, ofn.nMaxFile);
         free(ofn.lpstrFile);
         return paths;
     }
 
-    return "";
+    return L"";
 }
 
-std::string WinDialogs::ExportFile(const char* fileName)
+std::wstring WinDialogs::ExportFile(const wchar_t* fileName)
 {
-    OPENFILENAME ofn;   
-    TCHAR szFile[MAX_PATH] = { 0 }; 
-    strcpy(szFile, fileName);
+    OPENFILENAMEW ofn;   
+    wchar_t szFile[MAX_PATH] = { 0 }; 
+    wcscpy_s(szFile, fileName); // Use wcscpy_s for wide char
 
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = NULL;
     ofn.lpstrFile = szFile;
     ofn.nMaxFile = sizeof(szFile);
-    ofn.lpstrFilter = "All\0*.*\0";
+    ofn.lpstrFilter = L"All\0*.*\0"; // Use wide strings
     ofn.nFilterIndex = 1;
     ofn.lpstrFileTitle = NULL;
     ofn.nMaxFileTitle = 0;
     ofn.lpstrInitialDir = NULL;
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
 
-    if (GetSaveFileName(&ofn))
+    if (GetSaveFileNameW(&ofn)) // Use GetSaveFileNameW
     {
-        return std::string(ofn.lpstrFile);
+        return std::wstring(ofn.lpstrFile);
     }
 
-    return "";
+    return L"";
 }
 
-size_t WinDialogs::SaveArchive(std::string &path)
+size_t WinDialogs::SaveArchive(std::wstring &path)
 {
     path.resize(255);
-    OPENFILENAME ofn;   
+    OPENFILENAMEW ofn;   
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = NULL;
     ofn.lpstrFile = path.data();
     ofn.nMaxFile = static_cast<DWORD>(path.capacity());
-    ofn.lpstrFilter = "IMG Archive v1 (III, VC, BULLY)\0*.IMG\0IMG Archive v2 (SA)\0*.IMG\0";
+    ofn.lpstrFilter = L"IMG Archive v1 (III, VC, BULLY)\0*.IMG\0IMG Archive v2 (SA)\0*.IMG\0";
     ofn.nFilterIndex = 1;
     ofn.lpstrFileTitle = NULL;
     ofn.nMaxFileTitle = 0;
     ofn.lpstrInitialDir = NULL;
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
 
-   GetSaveFileName(&ofn);
-    return static_cast<size_t>(ofn.nFilterIndex);
+    if (GetSaveFileNameW(&ofn)) // Use GetSaveFileNameW
+    {
+        path = ofn.lpstrFile; // Update the path to the selected file
+        return static_cast<size_t>(ofn.nFilterIndex);
+    }
+    return 0; // Return 0 if canceled
 }
 
-std::string WinDialogs::SaveFolder()
+std::wstring WinDialogs::SaveFolder()
 {
     IFileOpenDialog *pFileOpen;
-    // Create the FileOpenDialog object.
     HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, 
             IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
 
@@ -119,9 +127,10 @@ std::string WinDialogs::SaveFolder()
                 if (SUCCEEDED(hr))
                 {
                     std::wstring wstr(pszFilePath);
-                    std::string str(wstr.begin(), wstr.end());
                     CoTaskMemFree(pszFilePath);
-                    return str;
+                    pItem->Release();
+                    pFileOpen->Release();
+                    return wstr; // Return wide string
                 }
                 pItem->Release();
             }
@@ -129,5 +138,5 @@ std::string WinDialogs::SaveFolder()
         pFileOpen->Release();
     }
     CoUninitialize();
-    return "";
+    return L""; // Return empty string if failed
 }

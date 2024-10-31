@@ -76,6 +76,7 @@
         "xutility": "cpp",
         "*.rh": "cpp",
         "any": "cpp",
-        "deque": "cpp"
+        "deque": "cpp",
+        "codecvt": "cpp"
     }
 }

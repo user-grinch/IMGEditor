@@ -3,6 +3,19 @@
 #include "widget.h"
 #include "windialogs.h"
 #include "updater.h"
+#include "hotkeys.h"
+#include <codecvt>
+
+std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+
+Hotkey openFile {ImGuiKey_ModCtrl, ImGuiKey_O};
+Hotkey newFile {ImGuiKey_ModCtrl, ImGuiKey_N};
+Hotkey saveFile {ImGuiKey_ModCtrl, ImGuiKey_S};
+Hotkey saveFileAs {ImGuiKey_ModShift, ImGuiKey_S};
+Hotkey importFile {ImGuiKey_ModCtrl, ImGuiKey_I};
+Hotkey importReplaceFile {ImGuiKey_ModShift, ImGuiKey_I};
+Hotkey exportFile {ImGuiKey_ModCtrl, ImGuiKey_E};
+Hotkey exportSelectedFile {ImGuiKey_ModShift, ImGuiKey_E};
 
 void Editor::AboutPopUp()
 {
@@ -89,16 +102,19 @@ void Editor::WelcomePopup()
     ImGui::Text("Copyright Grinch_ 2022-2025. All rights reserved.");
 }
 
-const char* Editor::GetFilterText()
+const wchar_t* Editor::GetFilterText()
 {
-    return Filter.InputBuf;
+    static wchar_t buf[256];
+    ConvertCharToWideChar(Filter.InputBuf, buf, sizeof(buf));
+    assert(sizeof(Filter.InputBuf) != sizeof(buf));
+    return buf;
 }
 
-bool Editor::DoesArchiveExist(const std::string &name)
+bool Editor::DoesArchiveExist(const std::wstring &name)
 {
     for (IMGArchive &arc : ArchiveList)
     {
-        if (std::string(arc.FileName) == name)
+        if (std::wstring(arc.FileName) == name)
         {
             return true;
         }
@@ -116,113 +132,21 @@ void Editor::SetUpdateFound()
 
 void Editor::ProcessMenuBar()
 {
-    if (ImGui::BeginMenu("File"))
+     if (ImGui::BeginMenu("File"))
     {
-        if (ImGui::MenuItem("New"))
-        {
-            if (DoesArchiveExist("Untitled"))
-            {
-                // 50 is kinda overkill
-                for (size_t i = 2; i < 20; ++i)
-                {
-                    std::string name = std::format("Untitled({})", i);
-                    if (!DoesArchiveExist(name))
-                    {
-                        AddArchiveEntry({name, true});
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                AddArchiveEntry({"Untitled", true});
-            }
-        }
-        if (ImGui::MenuItem("Open..."))
-        {
-            std::string path = WinDialogs::OpenFile();
-            std::string fileName = std::filesystem::path(path).filename().stem().string();
-            if (!DoesArchiveExist(fileName))
-            {
-                if (path != "")
-                {
-                    if (IMGArchive::GetVersion(path) != eImgVer::Unknown)
-                    {
-                        AddArchiveEntry(std::move(IMGArchive(std::move(path))));
-                    }
-                    else
-                    {
-                        pApp->SetPopup([]()
-                        {
-                            ImGui::Text("IMG format not supported!");
-                            ImGui::Spacing();
-                            ImGui::Text("Supported formats,");
-                            ImGui::Text("1. GTA 3");
-                            ImGui::Text("2. GTA VC");
-                            ImGui::Text("3. GTA SA");
-                            ImGui::Text("4. Bully Scholarship Edition");
-                        });
-                    }
-                }
-            }
-        }
-        if (ImGui::MenuItem("Save", NULL, false, pSelectedArchive && !pSelectedArchive->Path.empty()))
-        {
-            if ( !pSelectedArchive->ProgressBar.bInUse)
-            {
-                ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, pSelectedArchive->Path, 
-                                    pSelectedArchive->ImageVersion};
-                CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::Save, info, NULL, NULL);
-                pSelectedArchive->AddLogMessage("Archive saved");
-            }
-        }
-        if (ImGui::MenuItem("Save as...", NULL, false, pSelectedArchive))
-        {
-            if (!pSelectedArchive->ProgressBar.bInUse)
-            {   
-                std::string path = pSelectedArchive->FileName + ".img";
-                eImgVer ver = static_cast<eImgVer>(WinDialogs::SaveArchive(path)-1);
-                ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path, ver,false};
-                CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::Save, info, NULL, NULL);
-                pSelectedArchive->AddLogMessage("Archive saved");
-            }
-        }
+        if (ImGui::MenuItem("New    (Ctrl + N)")) NewArchive();
+        if (ImGui::MenuItem("Open... (Ctrl + O)")) OpenArchive();
+        if (ImGui::MenuItem("Save   (Ctrl + S)", NULL, false, pSelectedArchive && !pSelectedArchive->Path.empty())) SaveArchive();
+        if (ImGui::MenuItem("Save as... (Shift + S)", NULL, false, pSelectedArchive)) SaveArchiveAs();
         ImGui::EndMenu();
     }
+
     if (ImGui::BeginMenu("Edit"))
     {
-        if (ImGui::MenuItem("Import", NULL, false, pSelectedArchive))
-        {
-            std::string fileNames = WinDialogs::ImportFiles();
-            if (fileNames != "") {
-                ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, fileNames, eImgVer::Unknown, false};
-                CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ImportEntries, info, NULL, NULL);
-            }
-        }
-        if (ImGui::MenuItem("Import & replace", NULL, false, pSelectedArchive))
-        {
-            std::string fileNames = WinDialogs::ImportFiles();
-            if (fileNames != "") {
-                ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, fileNames, eImgVer::Unknown, true};
-                CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ImportEntries, info, NULL, NULL);
-            }
-        }
-        if (ImGui::MenuItem("Export all", NULL, false, pSelectedArchive && !pSelectedArchive->ProgressBar.bInUse))
-        {
-            std::string path = WinDialogs::SaveFolder();
-            if (path != "") {
-                ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
-                CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportAll, info, NULL, NULL);
-            }
-        }
-        if (ImGui::MenuItem("Export selected", NULL, false, pSelectedArchive && !pSelectedArchive->ProgressBar.bInUse))
-        {
-            std::string path = WinDialogs::SaveFolder();
-            if (path != "") {
-                ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
-                CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportSelected, info, NULL, NULL);
-            }
-        }
+        if (ImGui::MenuItem("Import    (Ctrl + I)", NULL, false, pSelectedArchive)) ImportFiles();
+        if (ImGui::MenuItem("Import & replace   (Shift + I)", NULL, false, pSelectedArchive)) ImportAndReplaceFiles();
+        if (ImGui::MenuItem("Export all    (Ctrl + E)", NULL, false, pSelectedArchive && !pSelectedArchive->ProgressBar.bInUse)) ExportAll();
+        if (ImGui::MenuItem("Export selected    (Shift + E)", NULL, false, pSelectedArchive && !pSelectedArchive->ProgressBar.bInUse)) ExportSelected();
         ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Option"))
@@ -303,19 +227,25 @@ void Editor::ProcessContextMenu()
                     pSelectedArchive->EntryList.begin(), 
                     pSelectedArchive->EntryList.end(), 
                     [](EntryInfo const& obj) {
-                        return !strcmp(obj.FileName, pContextEntry->FileName);
+                        return obj.bSelected;
                     }
                 ),
                 pSelectedArchive->EntryList.end()
             ); 
-            pSelectedArchive->UpdateSelectList(Filter.InputBuf);
+            wchar_t buf[256];
+            ConvertCharToWideChar(Filter.InputBuf, buf, sizeof(buf));
+            assert(sizeof(Filter.InputBuf) != sizeof(buf));
+            pSelectedArchive->UpdateSelectList(buf);
             pContextEntry = nullptr;
         }
 
         if (ImGui::MenuItem("Export"))
         {
-            std::string path = WinDialogs::ExportFile(pContextEntry->FileName);
-            pSelectedArchive->ExportEntry(pContextEntry, path);
+            std::wstring path = WinDialogs::SaveFolder();
+            if (path != L"") {
+                ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
+                CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportSelected, info, NULL, NULL);
+            }
             pContextEntry = nullptr;
         }
 
@@ -328,13 +258,16 @@ void Editor::ProcessContextMenu()
                     e.bRename  = false;
                 }
                 pContextEntry->bRename = true;
-                pSelectedArchive->UpdateSelectList(Filter.InputBuf);
+                wchar_t buf[256];
+                ConvertCharToWideChar(Filter.InputBuf, buf, sizeof(buf));
+                assert(sizeof(Filter.InputBuf) != sizeof(buf));
+                pSelectedArchive->UpdateSelectList(buf);
             }
             pContextEntry = nullptr;
         }
         if (ImGui::MenuItem("Copy name"))
         {
-            ImGui::SetClipboardText(pContextEntry->FileName);
+            ImGui::SetClipboardText(converter.to_bytes(pContextEntry->FileName).c_str());
             pContextEntry = nullptr;
         }
         height = ImGui::GetWindowHeight();
@@ -366,7 +299,7 @@ void Editor::ProcessWindow()
     {
         for (IMGArchive &archive : ArchiveList)
         {  
-            if (ImGui::BeginTabItem(archive.FileName.c_str(), &archive.bOpen))
+            if (ImGui::BeginTabItem(converter.to_bytes(archive.FileName).c_str(), &archive.bOpen))
             {
                 pSelectedArchive = &archive;
                 ImGui::Columns(2, NULL, false);
@@ -375,21 +308,23 @@ void Editor::ProcessWindow()
             
                 // Search bar
                 ImGui::SetNextItemWidth(ImGui::GetColumnWidth() - style.ItemSpacing.x - style.WindowPadding.x);
-                std::string hint = std::format("Search  {}", archive.Path);
-                if (Widget::Filter("##Search", Filter, hint.c_str()))
+                std::wstring hint = std::format(L"Search  {}", archive.Path);
+                if (Widget::Filter("##Search", Filter, converter.to_bytes(hint).c_str()))
                 {
-                    pSelectedArchive->UpdateSelectList(Filter.InputBuf);
+                    wchar_t buf[256];
+                    ConvertCharToWideChar(Filter.InputBuf, buf, sizeof(buf));
+                    assert(sizeof(Filter.InputBuf) != sizeof(buf));
+                    pSelectedArchive->UpdateSelectList(buf);
                 }
 
-                if (ImGui::BeginTable("ListedItems", 4, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
+                if (ImGui::BeginTable("ListedItems", 3, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
                 {
                     // Freeze the header row
                     ImGui::TableSetupScrollFreeze(0, 1);
                     ImGui::TableSetupColumn("Name");
                     float scl = columnWidth / 445.5f;
                     ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 100 * scl);
-                    ImGui::TableSetupColumn("Offset", ImGuiTableColumnFlags_WidthFixed, 50 * scl);
-                    ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, 50 * scl);
+                    ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, 75 * scl);
                     ImGui::TableHeadersRow();
                    
                     float height = ImGui::GetItemRectSize().y;
@@ -399,7 +334,7 @@ void Editor::ProcessWindow()
                         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
                         {
                             EntryInfo *pEntry = archive.SelectedList[i];
-                            if (Filter.PassFilter(pEntry->FileName))
+                            if (Filter.PassFilter(converter.to_bytes(pEntry->FileName).c_str()))
                             {
                                 ImGui::TableNextRow();
                                 ImGui::TableNextColumn();
@@ -407,7 +342,13 @@ void Editor::ProcessWindow()
                                 if (pEntry->bRename)
                                 {
                                     ImGui::SetNextItemWidth(ImGui::GetColumnWidth());
-                                    ImGui::InputText("##Rename", pEntry->FileName, sizeof(pEntry->FileName));
+
+                                    char buf[24];
+                                    memset(buf, 0, sizeof(buf));
+                                    assert(sizeof(buf) != sizeof(pEntry->FileName));
+                                    if (ImGui::InputText("##Rename", buf, sizeof(buf))) {
+                                        ConvertCharToWideChar(buf, pEntry->FileName, sizeof(pEntry->FileName));
+                                    }
                                     if (ImGui::IsKeyPressed(VK_RETURN) 
                                     || (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsItemHovered()))
                                     {
@@ -422,7 +363,7 @@ void Editor::ProcessWindow()
                                         ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
                                         styleApplied = true;
                                     }
-                                    if (ImGui::Selectable(pEntry->FileName, pEntry->bSelected))
+                                    if (ImGui::Selectable(converter.to_bytes(pEntry->FileName).c_str(), pEntry->bSelected))
                                     {
                                         // selection & renanme disable
                                         bool prevSelected = false;
@@ -436,7 +377,7 @@ void Editor::ProcessWindow()
                                                 {
                                                     e.bSelected = true;
                                                 }
-                                                if (!strcmp(e.FileName, pEntry->FileName))
+                                                if (!wcscmp(e.FileName, pEntry->FileName))
                                                 {
                                                     prevSelected = false;
                                                 }
@@ -470,9 +411,7 @@ void Editor::ProcessWindow()
                                 }
 
                                 ImGui::TableNextColumn();
-                                ImGui::Text(pEntry->Type.c_str());
-                                ImGui::TableNextColumn();
-                                ImGui::Text(std::format("0x{:X}", pEntry->Offset).c_str());
+                                ImGui::Text(converter.to_bytes(pEntry->Type).c_str());
                                 ImGui::TableNextColumn();
                                 ImGui::Text("%d kb", pEntry->Size*2);
                             }
@@ -495,7 +434,7 @@ void Editor::ProcessWindow()
                 {
                     pSelectedArchive->ProgressBar.bCancel = true;
                     pSelectedArchive->ProgressBar.Percentage = 0.0f;
-                    pSelectedArchive->AddLogMessage("Canceled operation");
+                    pSelectedArchive->AddLogMessage(L"Canceled operation");
                 }
                 if (!pSelectedArchive->ProgressBar.bInUse)
                 {
@@ -506,8 +445,8 @@ void Editor::ProcessWindow()
                 ImVec2 sz = Widget::CalcSize(2, true, true);
                 if (ImGui::Button("Import", sz))
                 {
-                    std::string fileNames = WinDialogs::ImportFiles();
-                    if (fileNames != "") {
+                    std::wstring fileNames = WinDialogs::ImportFiles();
+                    if (fileNames != L"") {
                         ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, fileNames, eImgVer::Unknown, false};
                         CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ImportEntries, info, NULL, NULL);
                     }
@@ -516,8 +455,8 @@ void Editor::ProcessWindow()
 
                 if (ImGui::Button("Export all", sz) && !pSelectedArchive->ProgressBar.bInUse)
                 {
-                    std::string path = WinDialogs::SaveFolder();
-                    if (path != "") {
+                    std::wstring path = WinDialogs::SaveFolder();
+                    if (path != L"") {
                         ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
                         CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportAll, info, NULL, NULL);
                     }
@@ -528,7 +467,7 @@ void Editor::ProcessWindow()
                     {   
                         e.bSelected = true;
                     }
-                    pSelectedArchive->AddLogMessage("Selected all entries");
+                    pSelectedArchive->AddLogMessage(L"Selected all entries");
                 }
                 ImGui::SameLine();
                 if (ImGui::Button("Select inverse", sz))
@@ -537,7 +476,7 @@ void Editor::ProcessWindow()
                     {   
                         e.bSelected = !e.bSelected;
                     }
-                    pSelectedArchive->AddLogMessage("Selection inversed");
+                    pSelectedArchive->AddLogMessage(L"Selection inversed");
                 }
                 if (ImGui::Button("Delete selection", sz))
                 {
@@ -551,12 +490,15 @@ void Editor::ProcessWindow()
                         ),
                         pSelectedArchive->EntryList.end()
                     ); 
-                    pSelectedArchive->UpdateSelectList(Filter.InputBuf);
+                    wchar_t buf[256];
+                    ConvertCharToWideChar(Filter.InputBuf, buf, sizeof(buf));
+                    assert(sizeof(Filter.InputBuf) != sizeof(buf));
+                    pSelectedArchive->UpdateSelectList(buf);
                 }
                 ImGui::SameLine();
                 if (ImGui::Button("Dump list", sz))
                 {
-                    FILE *fp = fopen(std::format("C:/Users/Public/Desktop/{}.txt", pSelectedArchive->FileName).c_str(), "w");
+                    FILE *fp = _wfopen(std::format(L"C:/Users/Public/Desktop/{}.txt", pSelectedArchive->FileName).c_str(), L"w");
                     if (fp)
                     {
                         fprintf(fp, "Dumped list from %s.img\n", pSelectedArchive->FileName.c_str());
@@ -565,7 +507,7 @@ void Editor::ProcessWindow()
                         {   
                             fprintf(fp, "%s\n", e.FileName);
                         }
-                        pSelectedArchive->AddLogMessage("Dumped to desktop");
+                        pSelectedArchive->AddLogMessage(L"Dumped to desktop");
                         fclose(fp);
                     }
                 }
@@ -595,7 +537,7 @@ void Editor::ProcessWindow()
                     {
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
-                        ImGui::Text(pSelectedArchive->LogList[i].c_str());
+                        ImGui::Text(converter.to_bytes(pSelectedArchive->LogList[i]).c_str());
                     }
                     ImGui::EndTable();
                 }
@@ -623,6 +565,24 @@ void Editor::ProcessWindow()
         }
 
         ImGui::EndTabBar();
+    }
+
+    if (openFile.Pressed()) {
+        OpenArchive();
+    } else if (newFile.Pressed()) {
+        NewArchive();
+    } else if (saveFile.Pressed()) {
+        SaveArchive();
+    } else if (saveFileAs.Pressed()) {
+        SaveArchiveAs();
+    } else if (importFile.Pressed()) {
+        ImportFiles();
+    } else if (importReplaceFile.Pressed()) {
+        ImportAndReplaceFiles();
+    } else if (exportFile.Pressed()) {
+        ExportAll();
+    } else if (exportSelectedFile.Pressed()) {
+        ExportSelected();
     }
 }
 
@@ -704,9 +664,122 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     }
     
     bool exists = std::filesystem::exists(&lpCmdLine[1]);    
-    Editor::AddArchiveEntry(exists ? IMGArchive(&lpCmdLine[1]) : IMGArchive("Untitled", true));
+    Editor::AddArchiveEntry(exists ? IMGArchive(converter.from_bytes(&lpCmdLine[1])) : IMGArchive(L"Untitled", true));
     Updater::CheckUpdate();
     CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&Updater::Process, NULL, NULL, NULL);
     Editor::Run();
     return 0;
+}
+
+void Editor::NewArchive()
+{
+    if (DoesArchiveExist(L"Untitled"))
+    {
+        for (size_t i = 2; i < 20; ++i)
+        {
+            std::wstring name = std::format(L"Untitled({})", i);
+            if (!DoesArchiveExist(name))
+            {
+                AddArchiveEntry({name, true});
+                break;
+            }
+        }
+    }
+    else
+    {
+        AddArchiveEntry({L"Untitled", true});
+    }
+}
+
+void Editor::OpenArchive()
+{
+    std::wstring path = WinDialogs::OpenFile();
+    std::wstring fileName = std::filesystem::path(path).filename().stem().wstring();
+    if (!DoesArchiveExist(fileName) && !path.empty())
+    {
+        if (IMGArchive::GetVersion(path) != eImgVer::Unknown)
+        {
+            AddArchiveEntry(std::move(IMGArchive(std::move(path))));
+        }
+        else
+        {
+            pApp->SetPopup([]()
+            {
+                ImGui::Text("IMG format not supported!");
+                ImGui::Spacing();
+                ImGui::Text("Supported formats:");
+                ImGui::Text("1. GTA 3");
+                ImGui::Text("2. GTA VC");
+                ImGui::Text("3. GTA SA");
+                ImGui::Text("4. Bully Scholarship Edition");
+            });
+        }
+    }
+}
+
+void Editor::SaveArchive()
+{
+    if (pSelectedArchive && !pSelectedArchive->ProgressBar.bInUse)
+    {
+        std::filesystem::path fsPath(pSelectedArchive->Path);
+        if (!pSelectedArchive->Path.empty() && fsPath.is_absolute() && std::filesystem::exists(fsPath)) {
+            ArchiveInfo* info = new ArchiveInfo{pSelectedArchive, pSelectedArchive->Path, pSelectedArchive->ImageVersion};
+            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::Save, info, NULL, NULL);
+            pSelectedArchive->AddLogMessage(L"Archive saved");
+        } else {
+            SaveArchiveAs();
+        }
+    }
+}
+
+void Editor::SaveArchiveAs()
+{
+    if (pSelectedArchive && !pSelectedArchive->ProgressBar.bInUse)
+    {   
+        std::wstring path = pSelectedArchive->FileName + L".img";
+        eImgVer ver = static_cast<eImgVer>(WinDialogs::SaveArchive(path) - 1);
+        ArchiveInfo* info = new ArchiveInfo{pSelectedArchive, path, ver, false};
+        CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::Save, info, NULL, NULL);
+        pSelectedArchive->AddLogMessage(L"Archive saved");
+    }
+}
+
+void Editor::ImportFiles()
+{
+    std::wstring fileNames = WinDialogs::ImportFiles();
+    if (!fileNames.empty())
+    {
+        ArchiveInfo* info = new ArchiveInfo{pSelectedArchive, fileNames, eImgVer::Unknown, false};
+        CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ImportEntries, info, NULL, NULL);
+    }
+}
+
+void Editor::ImportAndReplaceFiles()
+{
+    std::wstring fileNames = WinDialogs::ImportFiles();
+    if (!fileNames.empty())
+    {
+        ArchiveInfo* info = new ArchiveInfo{pSelectedArchive, fileNames, eImgVer::Unknown, true};
+        CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ImportEntries, info, NULL, NULL);
+    }
+}
+
+void Editor::ExportAll()
+{
+    std::wstring path = WinDialogs::SaveFolder();
+    if (!path.empty())
+    {
+        ArchiveInfo* info = new ArchiveInfo{pSelectedArchive, path};
+        CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportAll, info, NULL, NULL);
+    }
+}
+
+void Editor::ExportSelected()
+{
+    std::wstring path = WinDialogs::SaveFolder();
+    if (!path.empty())
+    {
+        ArchiveInfo* info = new ArchiveInfo{pSelectedArchive, path};
+        CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportSelected, info, NULL, NULL);
+    }
 }

@@ -17,11 +17,11 @@ struct EntryInfo
     // archive data
     uint32_t Offset     = 0;        // in sectors (each sector is 2048 bytes)
     uint32_t Size       = 0;        // in sectors (each sector is 2048 bytes)
-    char FileName[24];              // file name in the archive
+    wchar_t FileName[24];              // file name in the archive
 
     // editor data
-    std::string Type    = "Unknown";
-    std::string Path    = "";       // Path used for importing
+    std::wstring Type    = L"Unknown";
+    std::wstring Path    = L"";       // Path used for importing
     bool bImported      = false;    // Was the item imported    
     bool bRename        = false;    // Is rename in progress
     bool bSelected      = false;    // Is item currently selected
@@ -41,7 +41,7 @@ class IParser;
 struct ArchiveInfo
 {
     IMGArchive* pArc;
-    std::string path;
+    std::wstring path;
     eImgVer outVer = eImgVer::Unknown;  // version for the output archive
     bool removeExisting = true;
 };
@@ -53,11 +53,11 @@ struct ArchiveInfo
 class IMGArchive
 {
 public:
-    std::string Path;
-    std::string FileName;
+    std::wstring Path;
+    std::wstring FileName;
     std::vector<EntryInfo> EntryList;
     std::vector<EntryInfo*> SelectedList;
-    std::vector<std::string> LogList;
+    std::vector<std::wstring> LogList;
     ProgressInfo ProgressBar;
     eImgVer ImageVersion = eImgVer::Two;
     IParser *Parser = nullptr;
@@ -65,13 +65,13 @@ public:
     bool bOpen = true;
     bool bCreateNew;
 
-    IMGArchive(std::string Path, bool CreateNew = false);
+    IMGArchive(std::wstring Path, bool CreateNew = false);
 
     // Adds a new message to log
-    void AddLogMessage(std::string &&message);
+    void AddLogMessage(std::wstring &&message);
 
     // Export entity
-    void ExportEntry(EntryInfo *pEntry, std::string filePath, bool log = true);
+    void ExportEntry(EntryInfo *pEntry, std::wstring filePath, bool log = true);
     
     // Exports the entire archive, should run in a separate thread
     static void ExportAll(ArchiveInfo *pInfo);
@@ -80,13 +80,13 @@ public:
     static void ExportSelected(ArchiveInfo *pInfo);
 
     // Get file type
-    static std::string GetFileType(const char* name);
+    static std::wstring GetFileType(const wchar_t* name);
 
     // Returns archive version 
-    static eImgVer GetVersion(const std::string &archivePath);
+    static eImgVer GetVersion(const std::wstring &archivePath);
 
     // Import entity
-    void ImportEntry(const std::string& path, bool replace = false);
+    void ImportEntry(const std::wstring& path, bool replace = false);
 
     // Imports multiple file entries at once
     static void ImportEntries(ArchiveInfo *pInfo);
@@ -95,5 +95,5 @@ public:
     static void Save(ArchiveInfo *pInfo);
 
     // Updated the archive search bar selected list
-    void UpdateSelectList(const char* text);
+    void UpdateSelectList(const wchar_t* text);
 };

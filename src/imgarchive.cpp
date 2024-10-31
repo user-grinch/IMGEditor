@@ -4,13 +4,13 @@
 #include <filesystem>
 #include "editor.h"
 
-IMGArchive::IMGArchive(std::string Path, bool CreateNew)
+IMGArchive::IMGArchive(std::wstring Path, bool CreateNew)
 {
     if (CreateNew)
     {
         this->FileName = Path;
         this->bCreateNew = true;
-        AddLogMessage("Created archive");
+        AddLogMessage(L"Created archive");
         Parser = Parser::Get();
     }
     else
@@ -32,36 +32,36 @@ IMGArchive::IMGArchive(std::string Path, bool CreateNew)
     if (Parser)
     {
         Parser->Open(this);
-        UpdateSelectList("");
+        UpdateSelectList(L"");
     }
 } 
 
-void IMGArchive::UpdateSelectList(const char *text)
+void IMGArchive::UpdateSelectList(const wchar_t *text)
 {
     SelectedList.clear();
     for (EntryInfo &e : EntryList)
     {
-        if (strstr(e.FileName, text))
+        if (wcsstr(e.FileName, text))
         {
             SelectedList.push_back(&e);
         }
     }
 }
 
-std::string IMGArchive::GetFileType(const char* name)
+std::wstring IMGArchive::GetFileType(const wchar_t* name)
 {
-    if (strstr(name, ".dff")) return "Model";
-    if (strstr(name, ".txd")) return "Texture";
-    if (strstr(name, ".col")) return "Collision";
-    if (strstr(name, ".ifp")) return "Animation";
-    if (strstr(name, ".ipl")) return "Item placement";
-    if (strstr(name, ".ide")) return "Item defination";
-    if (strstr(name, ".dat")) return "Data";
+    if (wcsstr(name, L".dff")) return L"Model";
+    if (wcsstr(name, L".txd")) return L"Texture";
+    if (wcsstr(name, L".col")) return L"Collision";
+    if (wcsstr(name, L".ifp")) return L"Animation";
+    if (wcsstr(name, L".ipl")) return L"Item placement";
+    if (wcsstr(name, L".ide")) return L"Item defination";
+    if (wcsstr(name, L".dat")) return L"Data";
 
-    return std::filesystem::path(name).extension().string() + " file";
+    return std::filesystem::path(name).extension().wstring() + L" file";
 }
 
-void IMGArchive::ExportEntry(EntryInfo *pEntry, std::string filePath, bool log)
+void IMGArchive::ExportEntry(EntryInfo *pEntry, std::wstring filePath, bool log)
 {
     if (Parser)
     {
@@ -76,7 +76,7 @@ void IMGArchive::ExportAll(ArchiveInfo *pInfo)
     
     for (size_t i = 0; i < total; ++i)
     {
-        std::string path = std::format("{}\\{}", pInfo->path, pInfo->pArc->EntryList[i].FileName);
+        std::wstring path = std::format(L"{}\\{}", pInfo->path, pInfo->pArc->EntryList[i].FileName);
         pInfo->pArc->ExportEntry(&pInfo->pArc->EntryList[i], path, false);
         pInfo->pArc->ProgressBar.Percentage = (static_cast<float>(i)+1)/ static_cast<float>(total);
 
@@ -86,7 +86,7 @@ void IMGArchive::ExportAll(ArchiveInfo *pInfo)
             break;
         }
     }
-    pInfo->pArc->AddLogMessage("Exported archive");
+    pInfo->pArc->AddLogMessage(L"Exported archive");
     pInfo->pArc->ProgressBar.bInUse = false;
     delete pInfo;
 }
@@ -100,7 +100,7 @@ void IMGArchive::ExportSelected(ArchiveInfo *pInfo)
     {
         if (pInfo->pArc->EntryList[i].bSelected)
         {
-            std::string path = std::format("{}\\{}", pInfo->path, pInfo->pArc->EntryList[i].FileName);
+            std::wstring path = std::format(L"{}\\{}", pInfo->path, pInfo->pArc->EntryList[i].FileName);
             pInfo->pArc->ExportEntry(&pInfo->pArc->EntryList[i], path, false);
             pInfo->pArc->ProgressBar.Percentage = (static_cast<float>(i)+1)/ static_cast<float>(total);
 
@@ -111,12 +111,12 @@ void IMGArchive::ExportSelected(ArchiveInfo *pInfo)
             }
         }
     }
-    pInfo->pArc->AddLogMessage("Exported entries");
+    pInfo->pArc->AddLogMessage(L"Exported entries");
     pInfo->pArc->ProgressBar.bInUse = false;
     delete pInfo;
 }
 
-void IMGArchive::ImportEntry(const std::string &path, bool replace)
+void IMGArchive::ImportEntry(const std::wstring &path, bool replace)
 {
     if (Parser)
     {
@@ -126,9 +126,9 @@ void IMGArchive::ImportEntry(const std::string &path, bool replace)
 
 void IMGArchive::ImportEntries(ArchiveInfo *pInfo)
 {
-    std::vector<std::string> list;
-    std::string temp = "";
-    std::string rootDir = "";
+    std::vector<std::wstring> list;
+    std::wstring temp = L"";
+    std::wstring rootDir = L"";
     for (char c : pInfo->path)
     {
         if (c != '\0')
@@ -137,21 +137,21 @@ void IMGArchive::ImportEntries(ArchiveInfo *pInfo)
         }
         else
         {
-            if (temp == "")
+            if (temp == L"")
             {
                 break;
             }
 
-            temp += "\0";
+            temp += L"\0";
             if (std::filesystem::is_directory(temp)) // skip folders
             {
-                rootDir = std::move(temp) + "\\";
+                rootDir = std::move(temp) + L"\\";
             }
             else
             {
                 list.push_back(std::move(rootDir + temp));
             }
-            temp = "";
+            temp = L"";
         }
     }
     
@@ -164,26 +164,26 @@ void IMGArchive::ImportEntries(ArchiveInfo *pInfo)
         if (pInfo->pArc->ProgressBar.bCancel)
         {
             pInfo->pArc->ProgressBar.bCancel = false;
-            pInfo->pArc->AddLogMessage("Rebuilding failed");
+            pInfo->pArc->AddLogMessage(L"Rebuilding failed");
             pInfo->pArc->ProgressBar.bInUse = false;
         }
     }
     pInfo->pArc->UpdateSelectList(Editor::GetFilterText());
-    pInfo->pArc->AddLogMessage("Imported entries");
+    pInfo->pArc->AddLogMessage(L"Imported entries");
     delete pInfo;
 }
 
-void IMGArchive::AddLogMessage(std::string &&message)
+void IMGArchive::AddLogMessage(std::wstring &&message)
 {
     LogList.push_back(std::move(message));
 }
 
-eImgVer IMGArchive::GetVersion(const std::string &Path)
+eImgVer IMGArchive::GetVersion(const std::wstring &Path)
 {
     eImgVer imgVer = eImgVer::Unknown;
 
     // It's easier to detect v2, so let's do it first
-    FILE *fp = fopen(Path.c_str(), "rb");
+    FILE *fp = _wfopen(Path.c_str(), L"rb");
     if (fp)
     {
         char ver[4];
@@ -197,8 +197,8 @@ eImgVer IMGArchive::GetVersion(const std::string &Path)
 
     //  How to actually detect v1?
     std::filesystem::path fsPath = std::filesystem::path(Path);
-    std::string dirPath = Path;
-    dirPath.replace(dirPath.end()-3, dirPath.end(), "dir");
+    std::wstring dirPath = Path;
+    dirPath.replace(dirPath.end()-3, dirPath.end(), L"dir");
 
     // if both .dir & .img exists with same name it's v1 YAY!
     if (std::filesystem::exists(fsPath) && std::filesystem::exists(dirPath))

@@ -4,16 +4,16 @@
 
 void Parser::Open(IMGArchive *pArc)
 {
-    std::string dirPath = pArc->Path;
+    std::wstring dirPath = pArc->Path;
     if (pArc->ImageVersion == eImgVer::One)
     {
-        dirPath.replace(dirPath.end()-3, dirPath.end(), "dir");
+        dirPath.replace(dirPath.end()-3, dirPath.end(), L"dir");
     }
 
     if (std::filesystem::exists(dirPath))
     {
-        pArc->FileName = std::move(std::filesystem::path(dirPath).filename().stem().string());
-        FILE *fp = fopen(dirPath.c_str(), "rb");
+        pArc->FileName = std::move(std::filesystem::path(dirPath).filename().stem().wstring());
+        FILE *fp = _wfopen(dirPath.c_str(), L"rb");
         if (fp)
         {
             uint32_t TotalEntries = 0;
@@ -37,7 +37,11 @@ void Parser::Open(IMGArchive *pArc)
                 EntryInfo entry;
                 fread(&entry.Offset, sizeof(entry.Offset), 1, fp);
                 fread(&entry.Size, sizeof(entry.Size), 1, fp);
-                fread(entry.FileName, sizeof(entry.FileName), 1, fp);
+
+                char buf[24];
+                fread(buf, sizeof(buf), 1, fp);
+                assert(sizeof(entry.FileName) != sizeof(buf));
+                ConvertCharToWideChar(buf, entry.FileName, 24);
 
                 entry.Type = IMGArchive::GetFileType(entry.FileName);
                 pArc->EntryList.push_back(std::move(entry));
@@ -45,30 +49,30 @@ void Parser::Open(IMGArchive *pArc)
         }
         fclose(fp);
     }
-    pArc->AddLogMessage("Opened archive");
+    pArc->AddLogMessage(L"Opened archive");
 }
 
-void Parser::Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::string& filePath, bool logMsg)
+void Parser::Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::wstring& filePath, bool logMsg)
 {
-    std::string path = filePath;
+    std::wstring path = filePath;
     size_t i = 1;
-    FILE *pF = fopen(path.c_str(), "r");
+    FILE *pF = _wfopen(path.c_str(), L"r");
     while (pF != NULL) {
         ++i;
-        std::string temp = std::format("({})", i);
-        size_t pos = path.find_last_of("."); 
+        std::wstring temp = std::format(L"({})", i);
+        size_t pos = path.find_last_of(L"."); 
         path.insert(pos , temp);
         if (pF) {
             fclose(pF);
         }
-        pF = fopen(path.c_str(), "r");
+        pF = _wfopen(path.c_str(), L"r");
     }
     if (pF) {
         fclose(pF);
     }
 
-    FILE *pOut = fopen(path.c_str(), "wb+");
-    FILE *pImg = fopen(pMgr->Path.c_str(), "rb");
+    FILE *pOut = _wfopen(path.c_str(), L"wb+");
+    FILE *pImg = _wfopen(pMgr->Path.c_str(), L"rb");
 
     if (pOut && pImg)
     {
@@ -83,7 +87,7 @@ void Parser::Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::string& file
             fwrite(buf, size, 1, pOut);
             if (logMsg)
             {
-                pMgr->AddLogMessage(std::format("Exported {}", pEntry->FileName));
+                pMgr->AddLogMessage(std::format(L"Exported {}", pEntry->FileName));
             }
             delete[] buf;
         }
@@ -98,7 +102,7 @@ void Parser::Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::string& file
     }
 }
 
-void Parser::Import(IMGArchive *pArc, const std::string &path, bool replace)
+void Parser::Import(IMGArchive *pArc, const std::wstring &path, bool replace)
 {
     std::filesystem::path p {path};
 
@@ -108,11 +112,11 @@ void Parser::Import(IMGArchive *pArc, const std::string &path, bool replace)
         return;
     }
 
-    std::string name = p.filename().string();
+    std::wstring name = p.filename().wstring();
 
     if (name.size() > 23)
     {
-        pArc->AddLogMessage(std::format("Skipping {}. Name too large.", name));
+        pArc->AddLogMessage(std::format(L"Skipping {}. Name too large.", name));
         return;
     }
 
@@ -131,7 +135,7 @@ void Parser::Import(IMGArchive *pArc, const std::string &path, bool replace)
     }
 
     EntryInfo info = {0};
-    strcpy(info.FileName, name.c_str());
+    wcscpy(info.FileName, name.c_str());
     info.Path = path;
     info.bImported = true;
     info.Type = IMGArchive::GetFileType(info.FileName);
@@ -144,21 +148,21 @@ void Parser::Save(ArchiveInfo *pInfo)
     eImgVer ver = pInfo->pArc->ImageVersion;
     eImgVer outVer = pInfo->outVer;
     pInfo->pArc->ProgressBar.bInUse = true;
-    std::string tempPath = pInfo->path + ".temp";
-    FILE *fImg = fopen(tempPath.c_str(), "wb");
-    FILE *fIn = fopen(pInfo->pArc->Path.c_str(), "rb");
+    std::wstring tempPath = pInfo->path + L".temp";
+    FILE *fImg = _wfopen(tempPath.c_str(), L"wb");
+    FILE *fIn = _wfopen(pInfo->pArc->Path.c_str(), L"rb");
 
     // used for v1 archives
     FILE *fDir = nullptr;
-    std::string dirPath = "";
-    std::string tempDirPath = "";
+    std::wstring dirPath = L"";
+    std::wstring tempDirPath = L"";
 
     if (outVer == eImgVer::One)
     {
         dirPath = pInfo->path.c_str();
-        dirPath.replace(dirPath.find("img"), sizeof("img") , "dir");
-        tempDirPath = dirPath + ".temp";
-        fDir = fopen(tempDirPath.c_str(), "wb");
+        dirPath.replace(dirPath.find(L"img"), sizeof(L"img") , L"dir");
+        tempDirPath = dirPath + L".temp";
+        fDir = _wfopen(tempDirPath.c_str(), L"wb");
     }   
 
     if (fImg)
@@ -183,7 +187,7 @@ void Parser::Save(ArchiveInfo *pInfo)
             // fetch archive size
             if (e.bImported)
             {
-                fFile = fopen(e.Path.c_str(), "rb");
+                fFile = _wfopen(e.Path.c_str(), L"rb");
                 _fseeki64(fFile, 0, SEEK_END);
                 size = _ftelli64(fFile);
                 _fseeki64(fFile, 0, SEEK_SET);
@@ -245,7 +249,7 @@ void Parser::Save(ArchiveInfo *pInfo)
                     fclose(fImg);
                     std::filesystem::remove(tempPath);
                 }
-                pInfo->pArc->AddLogMessage("Rebuilding failed");
+                pInfo->pArc->AddLogMessage(L"Rebuilding failed");
                 pInfo->pArc->ProgressBar.bInUse = false;
                 delete pInfo;
                 return;
@@ -281,7 +285,7 @@ void Parser::Save(ArchiveInfo *pInfo)
 
     // update data
     pInfo->pArc->Path = pInfo->path;
-    pInfo->pArc->FileName = std::move(std::filesystem::path(pInfo->path).filename().stem().string());
+    pInfo->pArc->FileName = std::move(std::filesystem::path(pInfo->path).filename().stem().wstring());
     pInfo->pArc->ProgressBar.bInUse = false;
     if (outVer != eImgVer::Unknown)
     {
