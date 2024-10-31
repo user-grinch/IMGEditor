@@ -333,12 +333,16 @@ void Ui::Renderer::DrawLayer(Specification &Spec)
             bool state = true;
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.5f);
             ImGui::SetNextWindowFocus();
-            if (ImGui::Begin("##PopupWindow", &state, flags))
+            
+            ImGui::OpenPopup("##PopupWindow");
+            if (ImGui::BeginPopupModal("##PopupWindow", &state, flags)) 
             {
                 Spec.PopupFunc();
                 sz = ImGui::GetWindowSize();
-                ImGui::End();
+                ImGui::NewLine();
+                ImGui::EndPopup();
             }
+
             ImGui::PopStyleVar();
 
             if (!state)
