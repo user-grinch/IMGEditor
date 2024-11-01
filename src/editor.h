@@ -25,6 +25,9 @@ private:
     static void ImportAndReplaceFiles();
     static void ExportAll();
     static void ExportSelected();
+    static void SelectAll();
+    static void SelectInverse();
+    static void DumpList();
 
 
     // Popups

@@ -8,6 +8,8 @@
 
 std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
 
+Hotkey selectAll {ImGuiKey_ModCtrl, ImGuiKey_A};
+Hotkey selectInverse {ImGuiKey_ModShift, ImGuiKey_A};
 Hotkey openFile {ImGuiKey_ModCtrl, ImGuiKey_O};
 Hotkey newFile {ImGuiKey_ModCtrl, ImGuiKey_N};
 Hotkey saveFile {ImGuiKey_ModCtrl, ImGuiKey_S};
@@ -145,10 +147,19 @@ void Editor::ProcessMenuBar()
     {
         if (ImGui::MenuItem("Import    (Ctrl + I)", NULL, false, pSelectedArchive)) ImportFiles();
         if (ImGui::MenuItem("Import & replace   (Shift + I)", NULL, false, pSelectedArchive)) ImportAndReplaceFiles();
+        if (ImGui::MenuItem("Dump list", NULL, false, pSelectedArchive)) DumpList();
         if (ImGui::MenuItem("Export all    (Ctrl + E)", NULL, false, pSelectedArchive && !pSelectedArchive->ProgressBar.bInUse)) ExportAll();
         if (ImGui::MenuItem("Export selected    (Shift + E)", NULL, false, pSelectedArchive && !pSelectedArchive->ProgressBar.bInUse)) ExportSelected();
         ImGui::EndMenu();
     }
+
+    if (ImGui::BeginMenu("Selection"))
+    {
+        if (ImGui::MenuItem("Select all    (Ctrl + A)", NULL, false, pSelectedArchive)) SelectAll();
+        if (ImGui::MenuItem("Select Inverse   (Shift + A)", NULL, false, pSelectedArchive)) SelectInverse();
+        ImGui::EndMenu();
+    }
+
     if (ImGui::BeginMenu("Option"))
     {
         if (ImGui::BeginMenu("Theme", true))
@@ -220,6 +231,11 @@ void Editor::ProcessContextMenu()
     ImGui::SetNextWindowFocus();
     if (ImGui::Begin("##Context", NULL, flags))
     {
+        if (ImGui::MenuItem("Copy name"))
+        {
+            ImGui::SetClipboardText(converter.to_bytes(pContextEntry->FileName).c_str());
+            pContextEntry = nullptr;
+        }
         if (ImGui::MenuItem("Delete"))
         {
             pContextEntry->bSelected = true;
@@ -239,7 +255,11 @@ void Editor::ProcessContextMenu()
             pSelectedArchive->UpdateSelectList(buf);
             pContextEntry = nullptr;
         }
-
+        if (ImGui::MenuItem("Dump list"))
+        {
+            DumpList();
+            pContextEntry = nullptr;
+        }
         if (ImGui::MenuItem("Export"))
         {
             pContextEntry->bSelected = true;
@@ -267,10 +287,15 @@ void Editor::ProcessContextMenu()
             }
             pContextEntry = nullptr;
         }
-        if (ImGui::MenuItem("Copy name"))
+        if (ImGui::MenuItem("Select all"))
         {
-            ImGui::SetClipboardText(converter.to_bytes(pContextEntry->FileName).c_str());
+            SelectAll();
             pContextEntry = nullptr;
+        }
+        if (ImGui::MenuItem("Select inverse"))
+        {
+           SelectInverse();
+           pContextEntry = nullptr;
         }
         height = ImGui::GetWindowHeight();
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsWindowHovered())
@@ -442,76 +467,7 @@ void Editor::ProcessWindow()
                     ImGui::EndDisabled();
                 }
 
-                ImGui::Spacing();
-                ImVec2 sz = Widget::CalcSize(2, true, true);
-                if (ImGui::Button("Import", sz))
-                {
-                    std::wstring fileNames = WinDialogs::ImportFiles();
-                    if (fileNames != L"") {
-                        ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, fileNames, eImgVer::Unknown, false};
-                        CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ImportEntries, info, NULL, NULL);
-                    }
-                }
-                ImGui::SameLine();
-
-                if (ImGui::Button("Export all", sz) && !pSelectedArchive->ProgressBar.bInUse)
-                {
-                    std::wstring path = WinDialogs::SaveFolder();
-                    if (path != L"") {
-                        ArchiveInfo *info  = new ArchiveInfo{pSelectedArchive, path};
-                        CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportAll, info, NULL, NULL);
-                    }
-                }
-                if (ImGui::Button("Select all", sz))
-                {
-                    for (EntryInfo &e : pSelectedArchive->EntryList)
-                    {   
-                        e.bSelected = true;
-                    }
-                    pSelectedArchive->AddLogMessage(L"Selected all entries");
-                }
-                ImGui::SameLine();
-                if (ImGui::Button("Select inverse", sz))
-                {
-                    for (EntryInfo &e : pSelectedArchive->EntryList)
-                    {   
-                        e.bSelected = !e.bSelected;
-                    }
-                    pSelectedArchive->AddLogMessage(L"Selection inversed");
-                }
-                if (ImGui::Button("Delete selection", sz))
-                {
-                    pSelectedArchive->EntryList.erase (
-                        std::remove_if (
-                            pSelectedArchive->EntryList.begin(), 
-                            pSelectedArchive->EntryList.end(), 
-                            [](EntryInfo const& obj) {
-                                return obj.bSelected;
-                            }
-                        ),
-                        pSelectedArchive->EntryList.end()
-                    ); 
-                    wchar_t buf[256];
-                    ConvertCharToWideChar(Filter.InputBuf, buf, sizeof(buf));
-                    assert(sizeof(Filter.InputBuf) != sizeof(buf));
-                    pSelectedArchive->UpdateSelectList(buf);
-                }
-                ImGui::SameLine();
-                if (ImGui::Button("Dump list", sz))
-                {
-                    FILE *fp = _wfopen(std::format(L"C:/Users/Public/Desktop/{}.txt", pSelectedArchive->FileName).c_str(), L"w");
-                    if (fp)
-                    {
-                        fprintf(fp, "Dumped list from %s.img\n", pSelectedArchive->FileName.c_str());
-                        fprintf(fp, "Total entries %d\n\n", static_cast<int>(pSelectedArchive->EntryList.size()));
-                        for (EntryInfo &e : pSelectedArchive->EntryList)
-                        {   
-                            fprintf(fp, "%s\n", e.FileName);
-                        }
-                        pSelectedArchive->AddLogMessage(L"Dumped to desktop");
-                        fclose(fp);
-                    }
-                }
+                ImGui::NewLine();
                 switch (pSelectedArchive->ImageVersion)
                 {
                 case eImgVer::One:
@@ -524,8 +480,9 @@ void Editor::ProcessWindow()
                     ImGui::Text("IMG format: Unknown");
                     break;
                 }
-                ImGui::SameLine();
-                ImGui::Text("Entries: %d", pSelectedArchive->EntryList.size());
+                ImGui::Text("Total Entries: %d", pSelectedArchive->EntryList.size());
+                ImGui::Spacing();
+                
                 if (ImGui::BeginTable("Log", 1, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders))
                 {
                     // Freeze the header row
@@ -584,6 +541,10 @@ void Editor::ProcessWindow()
         ExportAll();
     } else if (exportSelectedFile.Pressed()) {
         ExportSelected();
+    } else if (selectAll.Pressed()) {
+        SelectAll();
+    } else if (selectInverse.Pressed()) {
+        SelectInverse();
     }
 }
 
@@ -784,3 +745,36 @@ void Editor::ExportSelected()
         CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ExportSelected, info, NULL, NULL);
     }
 }
+
+void Editor::SelectAll()
+{
+    for (EntryInfo &e : pSelectedArchive->EntryList)
+    {   
+        e.bSelected = true;
+    }
+}
+
+void Editor::SelectInverse()
+{
+    for (EntryInfo &e : pSelectedArchive->EntryList)
+    {   
+        e.bSelected = !e.bSelected;
+    }
+}
+
+void Editor::DumpList()
+{
+    FILE *fp = _wfopen(std::format(L"C:/Users/Public/Desktop/{}.txt", pSelectedArchive->FileName).c_str(), L"w");
+    if (fp)
+    {
+        fwprintf(fp, L"Dumped list from %s.img\n", pSelectedArchive->FileName.c_str());
+        fwprintf(fp, L"Total entries %d\n\n", static_cast<int>(pSelectedArchive->EntryList.size()));
+        for (EntryInfo &e : pSelectedArchive->EntryList)
+        {   
+            fwprintf(fp, L"%s\n", e.FileName);
+        }
+        pSelectedArchive->AddLogMessage(L"Dumped to desktop");
+        fclose(fp);
+    }
+}
+
