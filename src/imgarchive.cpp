@@ -129,7 +129,7 @@ void IMGArchive::ImportEntries(ArchiveInfo *pInfo)
     std::vector<std::wstring> list;
     std::wstring temp = L"";
     std::wstring rootDir = L"";
-    for (char c : pInfo->path)
+    for (wchar_t c : pInfo->path)
     {
         if (c != '\0')
         {

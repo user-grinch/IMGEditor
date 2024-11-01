@@ -270,7 +270,11 @@ void Editor::ProcessContextMenu()
             }
             pContextEntry = nullptr;
         }
-
+        if (ImGui::MenuItem("Import"))
+        {
+            ImportAndReplaceFiles();
+            pContextEntry = nullptr;
+        }
         if (ImGui::MenuItem("Rename"))
         {
             if (pSelectedArchive)
