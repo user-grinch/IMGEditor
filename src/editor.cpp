@@ -414,11 +414,19 @@ void Editor::ProcessWindow()
                                 {
                                     ProcessSelection(pEntry, &archive);
                                 }
+                                if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                                {
+                                    pContextEntry = pContextEntry ? nullptr : pEntry;
+                                }
                                 ImGui::TableNextColumn();
                                 ;
                                 if (ImGui::Selectable(converter.to_bytes(std::format(L"{} kb ## {}", pEntry->Size*2, pEntry->FileName)).c_str(), archive.EntryList[i].bSelected))
                                 {
                                     ProcessSelection(pEntry, &archive);
+                                }
+                                if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                                {
+                                    pContextEntry = pContextEntry ? nullptr : pEntry;
                                 }
                             }
                         }
