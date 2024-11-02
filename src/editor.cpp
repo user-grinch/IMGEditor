@@ -395,38 +395,7 @@ void Editor::ProcessWindow()
                                     }
                                     if (ImGui::Selectable(converter.to_bytes(pEntry->FileName).c_str(), pEntry->bSelected))
                                     {
-                                        // selection & renanme disable
-                                        bool prevSelected = false;
-                                        for (EntryInfo &e : archive.EntryList)
-                                        {
-                                            // allow shift multiselect
-                                            ImVec2 min = ImGui::GetItemRectMin();
-                                            if (ImGui::IsKeyDown(VK_LSHIFT) || ImGui::IsKeyDown(VK_RSHIFT))
-                                            {
-                                                if (prevSelected)
-                                                {
-                                                    e.bSelected = true;
-                                                }
-                                                if (!wcscmp(e.FileName, pEntry->FileName))
-                                                {
-                                                    prevSelected = false;
-                                                }
-                                                else
-                                                {
-                                                    prevSelected = e.bSelected;
-                                                }
-                                            }
-                                            else
-                                            {
-                                                // allow multiselect when ctrl is pressed
-                                                if (!(ImGui::IsKeyDown(VK_LCONTROL) || ImGui::IsKeyDown(VK_RCONTROL)))
-                                                {
-                                                    e.bSelected = false;
-                                                }
-                                            }
-                                            e.bRename  = false;
-                                        }
-                                        pEntry->bSelected = !pEntry->bSelected;
+                                        ProcessSelection(pEntry, &archive);
                                     }
 
                                     if (styleApplied)
@@ -441,9 +410,16 @@ void Editor::ProcessWindow()
                                 }
 
                                 ImGui::TableNextColumn();
-                                ImGui::Text(converter.to_bytes(pEntry->Type).c_str());
+                                if (ImGui::Selectable(converter.to_bytes(pEntry->Type + L"##" + pEntry->FileName).c_str(), archive.EntryList[i].bSelected)) 
+                                {
+                                    ProcessSelection(pEntry, &archive);
+                                }
                                 ImGui::TableNextColumn();
-                                ImGui::Text("%d kb", pEntry->Size*2);
+                                ;
+                                if (ImGui::Selectable(converter.to_bytes(std::format(L"{} kb ## {}", pEntry->Size*2, pEntry->FileName)).c_str(), archive.EntryList[i].bSelected))
+                                {
+                                    ProcessSelection(pEntry, &archive);
+                                }
                             }
                         }
                     }
@@ -782,3 +758,55 @@ void Editor::DumpList()
     }
 }
 
+
+void Editor::ProcessSelection(EntryInfo *pEntry, IMGArchive *pArchive) 
+{
+    bool isShiftDown = ImGui::IsKeyDown(VK_LSHIFT) || ImGui::IsKeyDown(VK_RSHIFT);
+    bool isCtrlDown = ImGui::IsKeyDown(VK_LCONTROL) || ImGui::IsKeyDown(VK_RCONTROL);
+    int lastSelectedIndex = -1;
+    int clickedIndex = -1;
+
+    for (int i = 0; i < pArchive->EntryList.size(); i++)
+    {
+        if (pArchive->EntryList[i].bSelected)
+        {
+            lastSelectedIndex = i;  
+        }
+        if (&pArchive->EntryList[i] == pEntry)
+        {
+            clickedIndex = i;  
+        }
+    }
+
+    if (isShiftDown && lastSelectedIndex != -1 && clickedIndex != -1)
+    {
+        int start = min(lastSelectedIndex, clickedIndex);
+        int end = max(lastSelectedIndex, clickedIndex);
+
+        for (int i = 0; i < pArchive->EntryList.size(); i++)
+        {
+            pArchive->EntryList[i].bRename = false;  
+
+            if (i >= start && i <= end)
+            {
+                pArchive->EntryList[i].bSelected = true;
+            }
+            else if (!isCtrlDown)
+            {
+                pArchive->EntryList[i].bSelected = false;
+            }
+        }
+    }
+    else if (!isCtrlDown)
+    {
+        for (auto &e : pArchive->EntryList)
+        {
+            e.bSelected = false;
+        }
+    }
+
+    if (!isShiftDown) 
+    {
+        pEntry->bSelected = !pEntry->bSelected;
+    }
+}

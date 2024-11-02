@@ -9,7 +9,7 @@
 
 std::wstring WinDialogs::OpenFile()
 {
-    OPENFILENAMEW ofn;   // Use OPENFILENAMEW for Unicode
+    OPENFILENAMEW ofn;   
     wchar_t szFile[MAX_PATH] = { 0 }; 
 
     ZeroMemory(&ofn, sizeof(ofn));
@@ -17,14 +17,14 @@ std::wstring WinDialogs::OpenFile()
     ofn.hwndOwner = NULL;
     ofn.lpstrFile = szFile;
     ofn.nMaxFile = sizeof(szFile);
-    ofn.lpstrFilter = L"IMG Archive\0*.IMG\0";  // Use wide strings
+    ofn.lpstrFilter = L"IMG Archive\0*.IMG\0";  
     ofn.nFilterIndex = 1;
     ofn.lpstrFileTitle = NULL;
     ofn.nMaxFileTitle = 0;
     ofn.lpstrInitialDir = NULL;
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
-    if (GetOpenFileNameW(&ofn)) // Use GetOpenFileNameW for Unicode
+    if (GetOpenFileNameW(&ofn)) 
     {
         return std::wstring(ofn.lpstrFile);
     }
@@ -36,11 +36,11 @@ std::wstring WinDialogs::ImportFiles()
 {
     OPENFILENAMEW ofn = { sizeof ofn };
     ofn.nMaxFile = 1 << 20;
-    ofn.lpstrFile = (LPWSTR) calloc(ofn.nMaxFile, sizeof(wchar_t)); // Allocate wide char
+    ofn.lpstrFile = (LPWSTR) calloc(ofn.nMaxFile, sizeof(wchar_t)); 
     ofn.hwndOwner = NULL;
     ofn.Flags = OFN_ALLOWMULTISELECT | OFN_EXPLORER;
 
-    if (ofn.lpstrFile && GetOpenFileNameW(&ofn)) // Use GetOpenFileNameW
+    if (ofn.lpstrFile && GetOpenFileNameW(&ofn)) 
     {
         std::wstring paths = std::wstring(ofn.lpstrFile, ofn.nMaxFile);
         free(ofn.lpstrFile);
@@ -54,21 +54,21 @@ std::wstring WinDialogs::ExportFile(const wchar_t* fileName)
 {
     OPENFILENAMEW ofn;   
     wchar_t szFile[MAX_PATH] = { 0 }; 
-    wcscpy_s(szFile, fileName); // Use wcscpy_s for wide char
+    wcscpy_s(szFile, fileName); 
 
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = NULL;
     ofn.lpstrFile = szFile;
     ofn.nMaxFile = sizeof(szFile);
-    ofn.lpstrFilter = L"All\0*.*\0"; // Use wide strings
+    ofn.lpstrFilter = L"All\0*.*\0"; 
     ofn.nFilterIndex = 1;
     ofn.lpstrFileTitle = NULL;
     ofn.nMaxFileTitle = 0;
     ofn.lpstrInitialDir = NULL;
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
 
-    if (GetSaveFileNameW(&ofn)) // Use GetSaveFileNameW
+    if (GetSaveFileNameW(&ofn)) 
     {
         return std::wstring(ofn.lpstrFile);
     }
@@ -92,12 +92,12 @@ size_t WinDialogs::SaveArchive(std::wstring &path)
     ofn.lpstrInitialDir = NULL;
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
 
-    if (GetSaveFileNameW(&ofn)) // Use GetSaveFileNameW
+    if (GetSaveFileNameW(&ofn)) 
     {
-        path = ofn.lpstrFile; // Update the path to the selected file
+        path = ofn.lpstrFile; 
         return static_cast<size_t>(ofn.nFilterIndex);
     }
-    return 0; // Return 0 if canceled
+    return 0; 
 }
 
 std::wstring WinDialogs::SaveFolder()
@@ -110,10 +110,10 @@ std::wstring WinDialogs::SaveFolder()
     {
         pFileOpen->SetOptions(FOS_PICKFOLDERS);
         
-        // Show the Open dialog box.
+        
         hr = pFileOpen->Show(NULL);
 
-        // Get the file name from the dialog box.
+        
         if (SUCCEEDED(hr))
         {
             IShellItem *pItem;
@@ -123,14 +123,14 @@ std::wstring WinDialogs::SaveFolder()
                 PWSTR pszFilePath;
                 hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
 
-                // Display the file name to the user.
+                
                 if (SUCCEEDED(hr))
                 {
                     std::wstring wstr(pszFilePath);
                     CoTaskMemFree(pszFilePath);
                     pItem->Release();
                     pFileOpen->Release();
-                    return wstr; // Return wide string
+                    return wstr; 
                 }
                 pItem->Release();
             }
@@ -138,5 +138,5 @@ std::wstring WinDialogs::SaveFolder()
         pFileOpen->Release();
     }
     CoUninitialize();
-    return L""; // Return empty string if failed
+    return L""; 
 }

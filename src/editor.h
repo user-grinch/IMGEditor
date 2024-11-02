@@ -39,6 +39,8 @@ private:
     static void ProcessMenuBar();
     static void ProcessWindow();
 
+    static void ProcessSelection(EntryInfo *pEntry, IMGArchive *pArchive);
+
 public:
 
     // Adds a new archive to the list
