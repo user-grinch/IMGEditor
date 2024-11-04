@@ -41,7 +41,7 @@ void Parser::Open(IMGArchive *pArc)
 
                 char buf[24];
                 fread(buf, sizeof(buf), 1, fp);
-                Utils::ConvertUtf8ToWide(buf, sizeof(buf), entry.FileName, sizeof(entry.FileName));
+                Utils::ConvertUtf8ToWide(buf, entry.FileName, sizeof(buf));
 
                 entry.Type = IMGArchive::GetFileType(entry.FileName);
                 pArc->EntryList.push_back(std::move(entry));
@@ -204,7 +204,7 @@ void Parser::Save(ArchiveInfo *pInfo)
                 fread(buf, size, 1, e.bImported? fFile : fIn);
                 e.Offset = static_cast<uint32_t>(offset/2048);
                 char nameBuf[24]; 
-                Utils::ConvertWideToUtf8(e.FileName, sizeof(e.FileName), nameBuf, sizeof(nameBuf));
+                Utils::ConvertWideToUtf8(e.FileName, nameBuf, sizeof(nameBuf));
                 if (outVer == eImgVer::One)
                 {
                     fwrite(&e.Offset, sizeof(e.Offset), 1, fDir);

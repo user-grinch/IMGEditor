@@ -232,7 +232,7 @@ void Editor::ProcessContextMenu()
         if (ImGui::MenuItem("Copy name"))
         {
             char buf[24];
-            Utils::ConvertWideToUtf8(pContextEntry->FileName, sizeof(pContextEntry->FileName), buf, sizeof(buf));
+            Utils::ConvertWideToUtf8(pContextEntry->FileName, buf, sizeof(buf));
             ImGui::SetClipboardText(buf);
             pContextEntry = nullptr;
         }
@@ -305,7 +305,7 @@ void Editor::ProcessWindow()
         for (IMGArchive &archive : ArchiveList)
         {  
             char buf[24];
-            Utils::ConvertWideToUtf8(archive.FileName.c_str(), archive.FileName.size(), buf, sizeof(buf));
+            Utils::ConvertWideToUtf8(archive.FileName.c_str(), buf, sizeof(buf));
             if (ImGui::BeginTabItem(buf, &archive.bOpen))
             {
                 pSelectedArchive = &archive;
@@ -319,7 +319,7 @@ void Editor::ProcessWindow()
                 static char buf[256] = "";
                 if (ImGui::InputTextWithHint("##Filter", "Search", buf, sizeof(buf)))
                 {
-                    Utils::ConvertUtf8ToWide(buf, sizeof(buf), FilterText, sizeof(buf));
+                    Utils::ConvertUtf8ToWide(buf, FilterText, sizeof(buf));
                     Utils::ToLowerCase(FilterText);
                     pSelectedArchive->UpdateSelectList(FilterText);
                 }
@@ -351,7 +351,7 @@ void Editor::ProcessWindow()
 
                                     char buf[24] = "";
                                     if (ImGui::InputText("##Rename", buf, sizeof(buf))) {
-                                        Utils::ConvertUtf8ToWide(buf, sizeof(buf), pEntry->FileName, sizeof(pEntry->FileName));
+                                        Utils::ConvertUtf8ToWide(buf, pEntry->FileName, sizeof(pEntry->FileName));
                                     }
                                     if (ImGui::IsKeyPressed(VK_RETURN) 
                                     || (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsItemHovered()))
@@ -368,7 +368,7 @@ void Editor::ProcessWindow()
                                         styleApplied = true;
                                     }
                                     char buf[24] = "";
-                                    Utils::ConvertWideToUtf8(pEntry->FileName, sizeof(pEntry->FileName), buf, sizeof(buf));
+                                    Utils::ConvertWideToUtf8(pEntry->FileName, buf, sizeof(buf));
                                     if (ImGui::Selectable(buf, pEntry->bSelected))
                                     {
                                         ProcessSelection(pEntry, &archive);
@@ -388,7 +388,7 @@ void Editor::ProcessWindow()
                                 ImGui::TableNextColumn();
                                 char buf[128] = "";
                                 std::wstring str = pEntry->Type + L"##" + pEntry->FileName;
-                                Utils::ConvertWideToUtf8(str.c_str(), str.size(), buf, sizeof(buf));
+                                Utils::ConvertWideToUtf8(str.c_str(), buf, sizeof(buf));
                                 if (ImGui::Selectable(buf, archive.EntryList[i].bSelected)) 
                                 {
                                     ProcessSelection(pEntry, &archive);
@@ -399,7 +399,7 @@ void Editor::ProcessWindow()
                                 }
                                 ImGui::TableNextColumn();
                                 str = std::format(L"{} kb ## {}", pEntry->Size*2, pEntry->FileName);
-                                Utils::ConvertWideToUtf8(str.c_str(), str.size(), buf, sizeof(buf));
+                                Utils::ConvertWideToUtf8(str.c_str(), buf, sizeof(buf));
                                 if (ImGui::Selectable(buf, archive.EntryList[i].bSelected))
                                 {
                                     ProcessSelection(pEntry, &archive);
@@ -463,7 +463,7 @@ void Editor::ProcessWindow()
                     {
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
-                        Utils::ConvertWideToUtf8(pSelectedArchive->LogList[i].c_str(), pSelectedArchive->LogList[i].size(), buf, sizeof(buf));
+                        Utils::ConvertWideToUtf8(pSelectedArchive->LogList[i].c_str(), buf, sizeof(buf));
                         ImGui::Text(buf);
                     }
                     ImGui::EndTable();
@@ -588,7 +588,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     
     bool exists = std::filesystem::exists(&lpCmdLine[1]); 
     wchar_t buf[256];   
-    Utils::ConvertUtf8ToWide(&lpCmdLine[1], strlen(&lpCmdLine[1]), buf, sizeof(buf));
+    Utils::ConvertUtf8ToWide(&lpCmdLine[1], buf, sizeof(buf));
     Editor::AddArchiveEntry(exists ? IMGArchive(buf) : IMGArchive(L"Untitled", true));
     Updater::CheckUpdate();
     CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&Updater::Process, NULL, NULL, NULL);
