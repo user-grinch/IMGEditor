@@ -6,6 +6,19 @@
 #include <iostream>
 #include <locale>
 #include <codecvt>
+#include "ui/application.h"
+
+// Mouse starts working only after keyboard is pressed
+void FixInputBug() {
+    INPUT input = { 0 };
+    input.type = INPUT_KEYBOARD;
+    input.ki.wVk = VK_CONTROL;  
+    
+    SendInput(1, &input, sizeof(INPUT)); 
+    input.ki.dwFlags = KEYEVENTF_KEYUP;
+    SendInput(1, &input, sizeof(INPUT)); 
+    SetForegroundWindow(Ui::Renderer::GetWindowHandle());
+}
 
 std::wstring WinDialogs::OpenFile()
 {
@@ -14,7 +27,7 @@ std::wstring WinDialogs::OpenFile()
 
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = NULL;
+    ofn.hwndOwner = GetForegroundWindow();
     ofn.lpstrFile = szFile;
     ofn.nMaxFile = sizeof(szFile);
     ofn.lpstrFilter = L"IMG Archive\0*.IMG\0";  
@@ -26,9 +39,11 @@ std::wstring WinDialogs::OpenFile()
 
     if (GetOpenFileNameW(&ofn)) 
     {
+        FixInputBug();
         return std::wstring(ofn.lpstrFile);
     }
 
+    FixInputBug();
     return L"";
 }
 
@@ -42,11 +57,13 @@ std::wstring WinDialogs::ImportFiles()
 
     if (ofn.lpstrFile && GetOpenFileNameW(&ofn)) 
     {
+        FixInputBug();
         std::wstring paths = std::wstring(ofn.lpstrFile, ofn.nMaxFile);
         free(ofn.lpstrFile);
         return paths;
     }
 
+    FixInputBug();
     return L"";
 }
 
@@ -70,9 +87,11 @@ std::wstring WinDialogs::ExportFile(const wchar_t* fileName)
 
     if (GetSaveFileNameW(&ofn)) 
     {
+        FixInputBug();
         return std::wstring(ofn.lpstrFile);
     }
 
+    FixInputBug();
     return L"";
 }
 
@@ -95,8 +114,11 @@ size_t WinDialogs::SaveArchive(std::wstring &path)
     if (GetSaveFileNameW(&ofn)) 
     {
         path = ofn.lpstrFile; 
+        FixInputBug();
         return static_cast<size_t>(ofn.nFilterIndex);
     }
+
+    FixInputBug();
     return 0; 
 }
 
@@ -130,6 +152,7 @@ std::wstring WinDialogs::SaveFolder()
                     CoTaskMemFree(pszFilePath);
                     pItem->Release();
                     pFileOpen->Release();
+                    FixInputBug();
                     return wstr; 
                 }
                 pItem->Release();
@@ -138,5 +161,7 @@ std::wstring WinDialogs::SaveFolder()
         pFileOpen->Release();
     }
     CoUninitialize();
+
+    FixInputBug();
     return L""; 
 }

@@ -39,14 +39,24 @@ IMGArchive::IMGArchive(std::wstring Path, bool CreateNew)
 void IMGArchive::UpdateSelectList(const wchar_t *text)
 {
     SelectedList.clear();
+    
+    std::wstring lowerText(text);
+    std::transform(lowerText.begin(), lowerText.end(), lowerText.begin(),
+                   [](wchar_t c) { return towlower(c); });
+
     for (EntryInfo &e : EntryList)
     {
-        if (wcsstr(e.FileName, text))
+        std::wstring lowerFileName(e.FileName);
+        std::transform(lowerFileName.begin(), lowerFileName.end(), lowerFileName.begin(),
+                       [](wchar_t c) { return towlower(c); });
+
+        if (lowerFileName.find(lowerText) != std::wstring::npos)
         {
             SelectedList.push_back(&e);
         }
     }
 }
+
 
 std::wstring IMGArchive::GetFileType(const wchar_t* name)
 {

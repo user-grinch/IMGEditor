@@ -226,7 +226,6 @@ void Editor::ProcessContextMenu()
     ImGui::SetNextWindowPos(pos, ImGuiCond_Appearing);
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove;
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.5f);
-    ImGui::SetNextWindowFocus();
     if (ImGui::Begin("##Context", NULL, flags))
     {
         if (ImGui::MenuItem("Copy name"))
@@ -286,10 +285,13 @@ void Editor::ProcessContextMenu()
     ImGui::PopStyleVar();
 }
 
+void FixInputBug();
+
 void Editor::ProcessWindow()
 {
     float windowWidth = ImGui::GetWindowContentRegionWidth();
     ImGuiStyle &style = ImGui::GetStyle();
+    bool blockHotkeys = false;
 
     if (Updater::IsUpdateAvailable())
     {
@@ -298,6 +300,7 @@ void Editor::ProcessWindow()
             pApp->SetPopup(UpdatePopUp);
         }
     }
+
     ImGuiTabBarFlags tabFlags = ImGuiTabBarFlags_FittingPolicyScroll | ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_AutoSelectNewTabs;
     pSelectedArchive = nullptr;
     if (ImGui::BeginTabBar("Archives", tabFlags))
@@ -323,6 +326,8 @@ void Editor::ProcessWindow()
                     Utils::ToLowerCase(FilterText);
                     pSelectedArchive->UpdateSelectList(FilterText);
                 }
+
+                blockHotkeys = ImGui::IsItemActive();
 
                 if (ImGui::BeginTable("ListedItems", 3, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
                 {
@@ -484,28 +489,30 @@ void Editor::ProcessWindow()
         ImGui::EndTabBar();
     }
 
-    if (openFile.Pressed()) {
-        OpenArchive();
-    } else if (newFile.Pressed()) {
-        NewArchive();
-    } else if (saveFile.Pressed()) {
-        SaveArchive();
-    } else if (saveFileAs.Pressed()) {
-        SaveArchiveAs();
-    } else if (importFile.Pressed()) {
-        ImportFiles();
-    } else if (importReplaceFile.Pressed()) {
-        ImportAndReplaceFiles();
-    } else if (exportFile.Pressed()) {
-        ExportAll();
-    } else if (exportSelectedFile.Pressed()) {
-        ExportSelected();
-    } else if (selectAll.Pressed()) {
-        SelectAll();
-    } else if (selectInverse.Pressed()) {
-        SelectInverse();
-    } else if (closeTab.Pressed()) { 
-        CloseArchive(pSelectedArchive);
+    if (!blockHotkeys) {
+        if (openFile.Pressed()) {
+            OpenArchive();
+        } else if (newFile.Pressed()) {
+            NewArchive();
+        } else if (saveFile.Pressed()) {
+            SaveArchive();
+        } else if (saveFileAs.Pressed()) {
+            SaveArchiveAs();
+        } else if (importFile.Pressed()) {
+            ImportFiles();
+        } else if (importReplaceFile.Pressed()) {
+            ImportAndReplaceFiles();
+        } else if (exportFile.Pressed()) {
+            ExportAll();
+        } else if (exportSelectedFile.Pressed()) {
+            ExportSelected();
+        } else if (selectAll.Pressed()) {
+            SelectAll();
+        } else if (selectInverse.Pressed()) {
+            SelectInverse();
+        } else if (closeTab.Pressed()) { 
+            CloseArchive(pSelectedArchive);
+        }
     }
 }
 
@@ -524,6 +531,7 @@ void Editor::AddArchiveEntry(IMGArchive &&archive)
 
     ArchiveList.push_back(std::move(archive));
 }
+
 
 void Editor::Run()
 {

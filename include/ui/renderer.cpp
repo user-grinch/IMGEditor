@@ -212,6 +212,10 @@ void Ui::Renderer::CleanupDevice()
     }
 }
 
+HWND Ui::Renderer::GetWindowHandle() {
+    return hwnd;
+}
+
 void Ui::Renderer::ResetDevice()
 {
     ImGui_ImplDX9_InvalidateDeviceObjects();

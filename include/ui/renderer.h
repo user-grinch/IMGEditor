@@ -52,6 +52,9 @@ namespace Ui
         // Returns the active thememode
         static eTheme GetThemeMode();
 
+        // Returns handle of the window
+        static HWND GetWindowHandle();
+
         // Sets the current theme 
         static void SetThemeMode(eTheme theme);
 

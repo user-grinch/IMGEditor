@@ -12,7 +12,7 @@ Hotkey::Hotkey(ImGuiKey key1, ImGuiKey key2) {
 }
 
 bool Hotkey::Pressed(bool noDelay) {
-    if (ImGui::GetTime() - lastUpdate < 2.0) return false;
+    if (ImGui::GetTime() - lastUpdate < 0.5) return false;
 
     bool key0Pressed = GetAsyncKeyState(codes[0]) & 0x8000;
     bool key1Pressed = GetAsyncKeyState(codes[1]) & 0x8000;
