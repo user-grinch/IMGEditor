@@ -4,6 +4,7 @@
 #include <dwmapi.h>
 #include "resource.h"
 #include "application.h"
+#include "font.h"
 
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
@@ -372,6 +373,27 @@ void Ui::Renderer::DrawLayer(Specification &Spec)
     }
 }
 
+static const ImWchar ranges[] = {
+    0x0020, 0x00FF, // Basic Latin and Latin-1 Supplement
+    0x0400, 0x04FF, // Cyrillic
+    0x0980, 0x09FF, // Bangla
+    0x2000, 0x206F, // General Punctuation
+    0x0400, 0x052F, // Cyrillic Supplement
+    0x2DE0, 0x2DFF, // Hangul Jamo Extended-B
+    0xA640, 0xA69F, // Cyrillic Extended-D
+    0x011E, 0x011F, // Latin Extended-D
+    0x015E, 0x015F, // Latin Extended-D
+    0x0130, 0x0131, // Latin Extended-D
+    0x0600, 0x06FF, // Arabic
+    0x4E00, 0x9FFF, // CJK Unified Ideographs
+    0xAC00, 0xD7AF, // Hangul Syllables
+    0x3040, 0x309F, // Hiragana
+    0x30A0, 0x30FF, // Katakana
+    0x0E00, 0x0E7F, // Thai
+    0x0370, 0x03FF, // Greek and Coptic
+    0,
+};
+
 void Ui::Renderer::Init(const Specification &Spec)
 {
     ImGui_ImplWin32_EnableDpiAwareness();
@@ -415,7 +437,7 @@ void Ui::Renderer::Init(const Specification &Spec)
     info.cbSize = sizeof(MONITORINFO);
     GetMonitorInfo(monitor, &info);
     int h = info.rcMonitor.bottom - info.rcMonitor.top;
-    io.FontDefault = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\segoeui.ttf", 17.0f * h/768);
+    io.FontDefault = io.Fonts->AddFontFromMemoryCompressedBase85TTF(UiFont, 17.0f * h/768, NULL, ranges);
     io.Fonts->Build();
 
     ImGui_ImplWin32_Init(hwnd);

@@ -14,10 +14,12 @@ private:
     static inline std::string ConfigPath = "";
     static inline ImVec2 MonitorScale = {0, 0};
     static inline ImGuiTextFilter Filter = "";
+    static inline wchar_t FilterText[256] = L"";
 
 
     // Action
     static void NewArchive();
+
     static void OpenArchive();
     static void SaveArchive();
     static void SaveArchiveAs();
@@ -28,6 +30,7 @@ private:
     static void SelectAll();
     static void SelectInverse();
     static void DumpList();
+    static void CloseArchive(IMGArchive *pArchive);
 
 
     // Popups
@@ -54,6 +57,9 @@ public:
 
     // Initializes & runs the IMGEditor
     static void Run();
+
+    // Checks if the selected entry is valid for search
+    static bool IsValidSearch(const wchar_t *label);
 
     // Sets editor to update found state
     static void SetUpdateFound();

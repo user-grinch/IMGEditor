@@ -54,8 +54,8 @@ std::wstring IMGArchive::GetFileType(const wchar_t* name)
     if (wcsstr(name, L".txd")) return L"Texture";
     if (wcsstr(name, L".col")) return L"Collision";
     if (wcsstr(name, L".ifp")) return L"Animation";
-    if (wcsstr(name, L".ipl")) return L"Item placement";
-    if (wcsstr(name, L".ide")) return L"Item defination";
+    if (wcsstr(name, L".ipl")) return L"Placement";
+    if (wcsstr(name, L".ide")) return L"Defination";
     if (wcsstr(name, L".dat")) return L"Data";
 
     return std::filesystem::path(name).extension().wstring() + L" file";

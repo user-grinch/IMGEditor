@@ -1,4 +1,5 @@
 #include "hotkeys.h"
+#include <Windows.h>
 
 Hotkey::Hotkey(ImGuiKey key1, ImGuiKey key2) {
     codes[0] = defaultCodes[0] = key1;
@@ -13,10 +14,13 @@ Hotkey::Hotkey(ImGuiKey key1, ImGuiKey key2) {
 bool Hotkey::Pressed(bool noDelay) {
     if (ImGui::GetTime() - lastUpdate < 2.0) return false;
 
+    bool key0Pressed = GetAsyncKeyState(codes[0]) & 0x8000;
+    bool key1Pressed = GetAsyncKeyState(codes[1]) & 0x8000;
+
     if (noDelay) {
-        return ImGui::IsKeyDown(codes[0]) && ImGui::IsKeyDown(codes[1]);
+        return key0Pressed && key1Pressed;
     } else {
-        if (ImGui::IsKeyDown(codes[0]) && ImGui::IsKeyDown(codes[1])) {
+        if (key0Pressed && key1Pressed) {
             wPressed = true;
         } else {
             if (wPressed) {

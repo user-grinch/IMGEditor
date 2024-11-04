@@ -4,20 +4,19 @@
 #include "windialogs.h"
 #include "updater.h"
 #include "hotkeys.h"
-#include <codecvt>
+#include "utils.h"
 
-std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-
-Hotkey selectAll {ImGuiKey_ModCtrl, ImGuiKey_A};
-Hotkey selectInverse {ImGuiKey_ModShift, ImGuiKey_A};
-Hotkey openFile {ImGuiKey_ModCtrl, ImGuiKey_O};
-Hotkey newFile {ImGuiKey_ModCtrl, ImGuiKey_N};
-Hotkey saveFile {ImGuiKey_ModCtrl, ImGuiKey_S};
-Hotkey saveFileAs {ImGuiKey_ModShift, ImGuiKey_S};
-Hotkey importFile {ImGuiKey_ModCtrl, ImGuiKey_I};
-Hotkey importReplaceFile {ImGuiKey_ModShift, ImGuiKey_I};
-Hotkey exportFile {ImGuiKey_ModCtrl, ImGuiKey_E};
-Hotkey exportSelectedFile {ImGuiKey_ModShift, ImGuiKey_E};
+Hotkey closeTab {VK_SHIFT, 0x58};          // VK_X
+Hotkey selectAll {VK_CONTROL, 0x41};       // VK_A
+Hotkey selectInverse {VK_SHIFT, 0x41};     // VK_A
+Hotkey openFile {VK_CONTROL, 0x4F};        // VK_O
+Hotkey newFile {VK_CONTROL, 0x4E};         // VK_N
+Hotkey saveFile {VK_CONTROL, 0x53};        // VK_S
+Hotkey saveFileAs {VK_SHIFT, 0x53};        // VK_S
+Hotkey importFile {VK_CONTROL, 0x49};      // VK_I
+Hotkey importReplaceFile {VK_SHIFT, 0x49}; // VK_I
+Hotkey exportFile {VK_CONTROL, 0x45};       // VK_E
+Hotkey exportSelectedFile {VK_SHIFT, 0x45}; // VK_E
 
 void Editor::AboutPopUp()
 {
@@ -33,6 +32,7 @@ void Editor::AboutPopUp()
     ImGui::Dummy(ImVec2(0, 10));
     Widget::TextCentered("Credits");
     ImGui::Columns(2, NULL, false);
+
     ImGui::Text("Freetype");
     ImGui::Text("ImGui");
     ImGui::NextColumn();
@@ -106,10 +106,7 @@ void Editor::WelcomePopup()
 
 const wchar_t* Editor::GetFilterText()
 {
-    static wchar_t buf[256];
-    ConvertCharToWideChar(Filter.InputBuf, buf, sizeof(buf));
-    assert(sizeof(Filter.InputBuf) != sizeof(buf));
-    return buf;
+    return FilterText;
 }
 
 bool Editor::DoesArchiveExist(const std::wstring &name)
@@ -140,6 +137,7 @@ void Editor::ProcessMenuBar()
         if (ImGui::MenuItem("Open... (Ctrl + O)")) OpenArchive();
         if (ImGui::MenuItem("Save   (Ctrl + S)", NULL, false, pSelectedArchive && !pSelectedArchive->Path.empty())) SaveArchive();
         if (ImGui::MenuItem("Save as... (Shift + S)", NULL, false, pSelectedArchive)) SaveArchiveAs();
+        if (ImGui::MenuItem("Close (Shift + X)", NULL, false, pSelectedArchive)) CloseArchive(pSelectedArchive);
         ImGui::EndMenu();
     }
 
@@ -233,7 +231,9 @@ void Editor::ProcessContextMenu()
     {
         if (ImGui::MenuItem("Copy name"))
         {
-            ImGui::SetClipboardText(converter.to_bytes(pContextEntry->FileName).c_str());
+            char buf[24];
+            Utils::ConvertWideToUtf8(pContextEntry->FileName, sizeof(pContextEntry->FileName), buf, sizeof(buf));
+            ImGui::SetClipboardText(buf);
             pContextEntry = nullptr;
         }
         if (ImGui::MenuItem("Delete"))
@@ -249,15 +249,7 @@ void Editor::ProcessContextMenu()
                 ),
                 pSelectedArchive->EntryList.end()
             ); 
-            wchar_t buf[256];
-            ConvertCharToWideChar(Filter.InputBuf, buf, sizeof(buf));
-            assert(sizeof(Filter.InputBuf) != sizeof(buf));
-            pSelectedArchive->UpdateSelectList(buf);
-            pContextEntry = nullptr;
-        }
-        if (ImGui::MenuItem("Dump list"))
-        {
-            DumpList();
+            pSelectedArchive->UpdateSelectList(FilterText);
             pContextEntry = nullptr;
         }
         if (ImGui::MenuItem("Export"))
@@ -270,11 +262,6 @@ void Editor::ProcessContextMenu()
             }
             pContextEntry = nullptr;
         }
-        if (ImGui::MenuItem("Import"))
-        {
-            ImportAndReplaceFiles();
-            pContextEntry = nullptr;
-        }
         if (ImGui::MenuItem("Rename"))
         {
             if (pSelectedArchive)
@@ -284,22 +271,9 @@ void Editor::ProcessContextMenu()
                     e.bRename  = false;
                 }
                 pContextEntry->bRename = true;
-                wchar_t buf[256];
-                ConvertCharToWideChar(Filter.InputBuf, buf, sizeof(buf));
-                assert(sizeof(Filter.InputBuf) != sizeof(buf));
-                pSelectedArchive->UpdateSelectList(buf);
+                pSelectedArchive->UpdateSelectList(FilterText);
             }
             pContextEntry = nullptr;
-        }
-        if (ImGui::MenuItem("Select all"))
-        {
-            SelectAll();
-            pContextEntry = nullptr;
-        }
-        if (ImGui::MenuItem("Select inverse"))
-        {
-           SelectInverse();
-           pContextEntry = nullptr;
         }
         height = ImGui::GetWindowHeight();
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsWindowHovered())
@@ -330,7 +304,9 @@ void Editor::ProcessWindow()
     {
         for (IMGArchive &archive : ArchiveList)
         {  
-            if (ImGui::BeginTabItem(converter.to_bytes(archive.FileName).c_str(), &archive.bOpen))
+            char buf[24];
+            Utils::ConvertWideToUtf8(archive.FileName.c_str(), archive.FileName.size(), buf, sizeof(buf));
+            if (ImGui::BeginTabItem(buf, &archive.bOpen))
             {
                 pSelectedArchive = &archive;
                 ImGui::Columns(2, NULL, false);
@@ -339,12 +315,13 @@ void Editor::ProcessWindow()
             
                 // Search bar
                 ImGui::SetNextItemWidth(ImGui::GetColumnWidth() - style.ItemSpacing.x - style.WindowPadding.x);
-                if (Widget::Filter("##Search", Filter, "Search"))
+
+                static char buf[256] = "";
+                if (ImGui::InputTextWithHint("##Filter", "Search", buf, sizeof(buf)))
                 {
-                    wchar_t buf[256];
-                    ConvertCharToWideChar(Filter.InputBuf, buf, sizeof(buf));
-                    assert(sizeof(Filter.InputBuf) != sizeof(buf));
-                    pSelectedArchive->UpdateSelectList(buf);
+                    Utils::ConvertUtf8ToWide(buf, sizeof(buf), FilterText, sizeof(buf));
+                    Utils::ToLowerCase(FilterText);
+                    pSelectedArchive->UpdateSelectList(FilterText);
                 }
 
                 if (ImGui::BeginTable("ListedItems", 3, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
@@ -364,8 +341,7 @@ void Editor::ProcessWindow()
                         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
                         {
                             EntryInfo *pEntry = archive.SelectedList[i];
-                            if (Filter.PassFilter(converter.to_bytes(pEntry->FileName).c_str()))
-                            {
+                            
                                 ImGui::TableNextRow();
                                 ImGui::TableNextColumn();
                                 // Renaming system
@@ -373,11 +349,9 @@ void Editor::ProcessWindow()
                                 {
                                     ImGui::SetNextItemWidth(ImGui::GetColumnWidth());
 
-                                    char buf[24];
-                                    memset(buf, 0, sizeof(buf));
-                                    assert(sizeof(buf) != sizeof(pEntry->FileName));
+                                    char buf[24] = "";
                                     if (ImGui::InputText("##Rename", buf, sizeof(buf))) {
-                                        ConvertCharToWideChar(buf, pEntry->FileName, sizeof(pEntry->FileName));
+                                        Utils::ConvertUtf8ToWide(buf, sizeof(buf), pEntry->FileName, sizeof(pEntry->FileName));
                                     }
                                     if (ImGui::IsKeyPressed(VK_RETURN) 
                                     || (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsItemHovered()))
@@ -393,7 +367,9 @@ void Editor::ProcessWindow()
                                         ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
                                         styleApplied = true;
                                     }
-                                    if (ImGui::Selectable(converter.to_bytes(pEntry->FileName).c_str(), pEntry->bSelected))
+                                    char buf[24] = "";
+                                    Utils::ConvertWideToUtf8(pEntry->FileName, sizeof(pEntry->FileName), buf, sizeof(buf));
+                                    if (ImGui::Selectable(buf, pEntry->bSelected))
                                     {
                                         ProcessSelection(pEntry, &archive);
                                     }
@@ -410,7 +386,10 @@ void Editor::ProcessWindow()
                                 }
 
                                 ImGui::TableNextColumn();
-                                if (ImGui::Selectable(converter.to_bytes(pEntry->Type + L"##" + pEntry->FileName).c_str(), archive.EntryList[i].bSelected)) 
+                                char buf[128] = "";
+                                std::wstring str = pEntry->Type + L"##" + pEntry->FileName;
+                                Utils::ConvertWideToUtf8(str.c_str(), str.size(), buf, sizeof(buf));
+                                if (ImGui::Selectable(buf, archive.EntryList[i].bSelected)) 
                                 {
                                     ProcessSelection(pEntry, &archive);
                                 }
@@ -419,8 +398,9 @@ void Editor::ProcessWindow()
                                     pContextEntry = pContextEntry ? nullptr : pEntry;
                                 }
                                 ImGui::TableNextColumn();
-                                ;
-                                if (ImGui::Selectable(converter.to_bytes(std::format(L"{} kb ## {}", pEntry->Size*2, pEntry->FileName)).c_str(), archive.EntryList[i].bSelected))
+                                str = std::format(L"{} kb ## {}", pEntry->Size*2, pEntry->FileName);
+                                Utils::ConvertWideToUtf8(str.c_str(), str.size(), buf, sizeof(buf));
+                                if (ImGui::Selectable(buf, archive.EntryList[i].bSelected))
                                 {
                                     ProcessSelection(pEntry, &archive);
                                 }
@@ -428,7 +408,6 @@ void Editor::ProcessWindow()
                                 {
                                     pContextEntry = pContextEntry ? nullptr : pEntry;
                                 }
-                            }
                         }
                     }
                     ProcessContextMenu();
@@ -479,11 +458,13 @@ void Editor::ProcessWindow()
                     ImGui::TableHeadersRow();
 
                     int size = static_cast<int>(pSelectedArchive->LogList.size()-1);
+                    char buf[256];
                     for (int i = size; i >= 0; --i)
                     {
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
-                        ImGui::Text(converter.to_bytes(pSelectedArchive->LogList[i]).c_str());
+                        Utils::ConvertWideToUtf8(pSelectedArchive->LogList[i].c_str(), pSelectedArchive->LogList[i].size(), buf, sizeof(buf));
+                        ImGui::Text(buf);
                     }
                     ImGui::EndTable();
                 }
@@ -496,17 +477,7 @@ void Editor::ProcessWindow()
             // Remove element if closed form editor
             if (!archive.bOpen)
             {
-                ArchiveList.erase (
-                    std::remove_if (
-                        ArchiveList.begin(), 
-                        ArchiveList.end(), 
-                        
-                        [&archive](IMGArchive const& obj) {
-                            return obj.bCreateNew ? obj.FileName == archive.FileName : obj.Path == archive.Path;
-                        }
-                    ), 
-                    ArchiveList.end()
-                );
+                CloseArchive(&archive);
             }
         }
 
@@ -533,6 +504,8 @@ void Editor::ProcessWindow()
         SelectAll();
     } else if (selectInverse.Pressed()) {
         SelectInverse();
+    } else if (closeTab.Pressed()) { 
+        CloseArchive(pSelectedArchive);
     }
 }
 
@@ -566,7 +539,7 @@ void Editor::Run()
                     static_cast<long>(Ui::eTheme::SystemDefault)));
 
     Ui::Specification spec;
-    spec.Name = "IMG Editor v" EDITOR_VERSION;
+    spec.Name = "Grinch_'s IMG Editor v" EDITOR_VERSION;
     spec.MenuBarFunc = ProcessMenuBar;
 
     HMONITOR monitor = MonitorFromWindow(NULL, MONITOR_DEFAULTTONEAREST);
@@ -613,8 +586,10 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
         }
     }
     
-    bool exists = std::filesystem::exists(&lpCmdLine[1]);    
-    Editor::AddArchiveEntry(exists ? IMGArchive(converter.from_bytes(&lpCmdLine[1])) : IMGArchive(L"Untitled", true));
+    bool exists = std::filesystem::exists(&lpCmdLine[1]); 
+    wchar_t buf[256];   
+    Utils::ConvertUtf8ToWide(&lpCmdLine[1], strlen(&lpCmdLine[1]), buf, sizeof(buf));
+    Editor::AddArchiveEntry(exists ? IMGArchive(buf) : IMGArchive(L"Untitled", true));
     Updater::CheckUpdate();
     CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&Updater::Process, NULL, NULL, NULL);
     Editor::Run();
@@ -766,11 +741,25 @@ void Editor::DumpList()
     }
 }
 
+void Editor::CloseArchive(IMGArchive *pArchive)
+{
+    ArchiveList.erase (
+        std::remove_if (
+            ArchiveList.begin(), 
+            ArchiveList.end(), 
+            [pArchive](IMGArchive const& obj) {
+                return obj.bCreateNew ? obj.FileName == pArchive->FileName : obj.Path == pArchive->Path;
+            }
+        ), 
+        ArchiveList.end()
+    );
+}
+
 
 void Editor::ProcessSelection(EntryInfo *pEntry, IMGArchive *pArchive) 
 {
-    bool isShiftDown = ImGui::IsKeyDown(VK_LSHIFT) || ImGui::IsKeyDown(VK_RSHIFT);
-    bool isCtrlDown = ImGui::IsKeyDown(VK_LCONTROL) || ImGui::IsKeyDown(VK_RCONTROL);
+    bool isShiftDown = GetAsyncKeyState(VK_SHIFT) & 0x8000;
+    bool isCtrlDown = GetAsyncKeyState(VK_CONTROL) & 0x8000;
     int lastSelectedIndex = -1;
     int clickedIndex = -1;
 

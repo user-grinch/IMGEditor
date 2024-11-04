@@ -1,4 +1,4 @@
-# IMG Editor
+# Grinch_'s IMG Editor
 
 IMG archive editor for rockstar 3D era titles.
 

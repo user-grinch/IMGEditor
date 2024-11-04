@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "imgparser.h"
 #include "imgarchive.h"
+#include "utils.h"
 
 void Parser::Open(IMGArchive *pArc)
 {
@@ -40,8 +41,7 @@ void Parser::Open(IMGArchive *pArc)
 
                 char buf[24];
                 fread(buf, sizeof(buf), 1, fp);
-                assert(sizeof(entry.FileName) != sizeof(buf));
-                ConvertCharToWideChar(buf, entry.FileName, 24);
+                Utils::ConvertUtf8ToWide(buf, sizeof(buf), entry.FileName, sizeof(entry.FileName));
 
                 entry.Type = IMGArchive::GetFileType(entry.FileName);
                 pArc->EntryList.push_back(std::move(entry));
@@ -204,8 +204,7 @@ void Parser::Save(ArchiveInfo *pInfo)
                 fread(buf, size, 1, e.bImported? fFile : fIn);
                 e.Offset = static_cast<uint32_t>(offset/2048);
                 char nameBuf[24]; 
-                assert(sizeof(nameBuf) != sizeof(e.FileName)); 
-                ConvertWideCharToChar(e.FileName, nameBuf, sizeof(nameBuf));
+                Utils::ConvertWideToUtf8(e.FileName, sizeof(e.FileName), nameBuf, sizeof(nameBuf));
                 if (outVer == eImgVer::One)
                 {
                     fwrite(&e.Offset, sizeof(e.Offset), 1, fDir);
