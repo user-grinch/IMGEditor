@@ -1,8 +1,9 @@
 #include "pch.h"
 #include "imgarchive.h"
-#include "imgparser.h"
 #include <filesystem>
 #include "editor.h"
+#include "parser/pc_v1.h"
+#include "parser/pc_v2.h"
 
 IMGArchive::IMGArchive(std::wstring Path, bool CreateNew)
 {
@@ -11,7 +12,7 @@ IMGArchive::IMGArchive(std::wstring Path, bool CreateNew)
         this->FileName = Path;
         this->bCreateNew = true;
         AddLogMessage(L"Created archive");
-        Parser = Parser::Get();
+        Parser = ParserPCv1::Get();
     }
     else
     {
@@ -20,8 +21,10 @@ IMGArchive::IMGArchive(std::wstring Path, bool CreateNew)
         switch(this->ImageVersion)
         {
         case eImgVer::One:
+            Parser = ParserPCv1::Get();
+            break;
         case eImgVer::Two:
-            Parser = Parser::Get();
+            Parser = ParserPCv2::Get();
             break;
         default: 
             Parser = nullptr;
@@ -73,9 +76,15 @@ std::wstring IMGArchive::GetFileType(const wchar_t* name)
 
 void IMGArchive::ExportEntry(EntryInfo *pEntry, std::wstring filePath, bool log)
 {
-    if (Parser)
+    if (pEntry->bImported) {
+        std::filesystem::copy_file(pEntry->Path, filePath, std::filesystem::copy_options::overwrite_existing);
+    }
+    else
     {
-        Parser->Export(this, pEntry, filePath, log);
+        if (Parser)
+        {
+            Parser->Export(this, pEntry, filePath, log);
+        }
     }
 }
 
@@ -165,22 +174,12 @@ void IMGArchive::ImportEntries(ArchiveInfo *pInfo)
         }
     }
     
-    size_t total = list.size();
-    for (size_t i = 0; i != total; ++i)
+    for (size_t i = 0; i != list.size(); ++i)
     {
         pInfo->pArc->ImportEntry(list[i], pInfo->removeExisting);
-        pInfo->pArc->ProgressBar.Percentage = (static_cast<float>(i)+1)/ static_cast<float>(total);
-
-        if (pInfo->pArc->ProgressBar.bCancel)
-        {
-            pInfo->pArc->ProgressBar.bCancel = false;
-            pInfo->pArc->AddLogMessage(L"Rebuilding failed");
-            pInfo->pArc->ProgressBar.bInUse = false;
-        }
     }
-    pInfo->pArc->UpdateSelectList(Editor::GetFilterText());
     pInfo->pArc->AddLogMessage(L"Imported entries");
-    delete pInfo;
+    pInfo->pArc->bUpdateSearch = true;
 }
 
 void IMGArchive::AddLogMessage(std::wstring &&message)

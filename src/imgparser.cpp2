@@ -37,7 +37,7 @@ void Parser::Open(IMGArchive *pArc)
             {
                 EntryInfo entry;
                 fread(&entry.Offset, sizeof(entry.Offset), 1, fp);
-                fread(&entry.Size, sizeof(entry.Size), 1, fp);
+                fread(&entry.Sector, sizeof(entry.Sector), 1, fp);
 
                 char buf[24];
                 fread(buf, sizeof(buf), 1, fp);
@@ -76,8 +76,8 @@ void Parser::Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::wstring& fil
 
     if (pOut && pImg)
     {
-        size_t offset = pEntry->Offset*2048;
-        size_t size = pEntry->Size*2048;
+        size_t offset = pEntry->Offset*SECTOR_SZ;
+        size_t size = pEntry->Sector*SECTOR_SZ;
 
         _fseeki64(pImg, offset, 0);
         char *buf = new char[size + 1];
@@ -139,7 +139,7 @@ void Parser::Import(IMGArchive *pArc, const std::wstring &path, bool replace)
     info.Path = path;
     info.bImported = true;
     info.Type = IMGArchive::GetFileType(info.FileName);
-    info.Size = static_cast<uint32_t>(std::filesystem::file_size(path))/2048; // bytes -> sector
+    info.Sector = GetFileSz(path) / SECTOR_SZ;
     pArc->EntryList.push_back(std::move(info));
 }
 
@@ -188,35 +188,34 @@ void Parser::Save(ArchiveInfo *pInfo)
             if (e.bImported)
             {
                 fFile = _wfopen(e.Path.c_str(), L"rb");
-                _fseeki64(fFile, 0, SEEK_END);
-                size = _ftelli64(fFile);
-                _fseeki64(fFile, 0, SEEK_SET);
+                size = GetFileSz(e.Path);
+                e.Sector = size / SECTOR_SZ;
             }
             else
             {
-                _fseeki64(fIn, e.Offset*2048, SEEK_SET);
-                size = e.Size*2048;
+                _fseeki64(fIn, e.Offset * SECTOR_SZ, SEEK_SET);
+                size = e.Sector * SECTOR_SZ;
             }
 
             char *buf = new char[size + 1];
             if (buf)
             {
                 fread(buf, size, 1, e.bImported? fFile : fIn);
-                e.Offset = static_cast<uint32_t>(offset/2048);
+                e.Offset = static_cast<uint32_t>(offset/SECTOR_SZ);
                 char nameBuf[24]; 
-                Utils::ConvertWideToUtf8(e.FileName, nameBuf, sizeof(nameBuf));
+                Utils::ConvertWideToUtf8(e.FileName, nameBuf, 24);
                 if (outVer == eImgVer::One)
                 {
                     fwrite(&e.Offset, sizeof(e.Offset), 1, fDir);
-                    fwrite(&e.Size, sizeof(e.Size), 1, fDir);
-                    fwrite(nameBuf, sizeof(nameBuf), 1, fDir);
+                    fwrite(&e.Sector, sizeof(e.Sector), 1, fDir);
+                    fwrite(nameBuf, 24, 1, fDir);
                 }
                 else
                 {
                     long dirOffset = static_cast<long>(0x8 + 0x20 * index);
                     _fseeki64(fImg, dirOffset, SEEK_SET);
                     fwrite(&e.Offset, sizeof(e.Offset), 1, fImg);
-                    fwrite(&e.Size, sizeof(e.Size), 1, fImg);
+                    fwrite(&e.Sector, sizeof(e.Sector), 1, fImg);
                     fwrite(nameBuf, sizeof(nameBuf), 1, fImg);
                     _fseeki64(fImg, offset, SEEK_SET);
                 }
@@ -293,4 +292,9 @@ void Parser::Save(ArchiveInfo *pInfo)
         pInfo->pArc->ImageVersion = outVer;
     }
     delete pInfo;
+}
+
+size_t Parser::GetFileSz(const std::wstring& path) {
+    size_t sz = std::filesystem::file_size(path);
+    return max(SECTOR_SZ, sz + (SECTOR_SZ - sz % SECTOR_SZ) % SECTOR_SZ);
 }

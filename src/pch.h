@@ -2,6 +2,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define EDITOR_VERSION_NUM "0.60"
 #define EDITOR_VERSION EDITOR_VERSION_NUM"-beta"
+
+#include <fstream>
 #include <filesystem>
 #include <windows.h>
 #include <format>

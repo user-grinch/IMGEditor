@@ -16,7 +16,7 @@ struct EntryInfo
 {
     // archive data
     uint32_t Offset     = 0;        // in sectors (each sector is 2048 bytes)
-    uint32_t Size       = 0;        // in sectors (each sector is 2048 bytes)
+    uint32_t Sector       = 0;        // in sectors (each sector is 2048 bytes)
     wchar_t FileName[24];              // file name in the archive
 
     // editor data
@@ -64,6 +64,7 @@ public:
     
     bool bOpen = true;
     bool bCreateNew;
+    bool bUpdateSearch = false;
 
     IMGArchive(std::wstring Path, bool CreateNew = false);
 

@@ -248,7 +248,7 @@ void Editor::ProcessContextMenu()
                 ),
                 pSelectedArchive->EntryList.end()
             ); 
-            pSelectedArchive->UpdateSelectList(FilterText);
+            pSelectedArchive->bUpdateSearch = true;
             pContextEntry = nullptr;
         }
         if (ImGui::MenuItem("Export"))
@@ -270,7 +270,7 @@ void Editor::ProcessContextMenu()
                     e.bRename  = false;
                 }
                 pContextEntry->bRename = true;
-                pSelectedArchive->UpdateSelectList(FilterText);
+                pSelectedArchive->bUpdateSearch = true;
             }
             pContextEntry = nullptr;
         }
@@ -324,7 +324,7 @@ void Editor::ProcessWindow()
                 {
                     Utils::ConvertUtf8ToWide(buf, FilterText, sizeof(buf));
                     Utils::ToLowerCase(FilterText);
-                    pSelectedArchive->UpdateSelectList(FilterText);
+                    pSelectedArchive->bUpdateSearch = true;
                 }
 
                 blockHotkeys = ImGui::IsItemActive();
@@ -338,7 +338,12 @@ void Editor::ProcessWindow()
                     ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 100 * scl);
                     ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, 75 * scl);
                     ImGui::TableHeadersRow();
-                   
+
+                    if (pSelectedArchive->bUpdateSearch) {
+                        pSelectedArchive->UpdateSelectList(FilterText);
+                        pSelectedArchive->bUpdateSearch = false;
+                    }
+                    
                     float height = ImGui::GetItemRectSize().y;
                     ImGuiListClipper clipper(static_cast<int>(pSelectedArchive->SelectedList.size()), height);
                     while (clipper.Step())
@@ -403,7 +408,7 @@ void Editor::ProcessWindow()
                                     pContextEntry = pContextEntry ? nullptr : pEntry;
                                 }
                                 ImGui::TableNextColumn();
-                                str = std::format(L"{} kb ## {}", pEntry->Size*2, pEntry->FileName);
+                                str = std::format(L"{} kb ## {}", pEntry->Sector*2, pEntry->FileName);
                                 Utils::ConvertWideToUtf8(str.c_str(), buf, sizeof(buf));
                                 if (ImGui::Selectable(buf, archive.EntryList[i].bSelected))
                                 {
@@ -682,8 +687,8 @@ void Editor::ImportFiles()
     std::wstring fileNames = WinDialogs::ImportFiles();
     if (!fileNames.empty())
     {
-        ArchiveInfo* info = new ArchiveInfo{pSelectedArchive, fileNames, eImgVer::Unknown, false};
-        CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ImportEntries, info, NULL, NULL);
+        ArchiveInfo info = {pSelectedArchive, fileNames, eImgVer::Unknown, false};
+        IMGArchive::ImportEntries(&info);
     }
 }
 
@@ -692,8 +697,8 @@ void Editor::ImportAndReplaceFiles()
     std::wstring fileNames = WinDialogs::ImportFiles();
     if (!fileNames.empty())
     {
-        ArchiveInfo* info = new ArchiveInfo{pSelectedArchive, fileNames, eImgVer::Unknown, true};
-        CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::ImportEntries, info, NULL, NULL);
+        ArchiveInfo info = {pSelectedArchive, fileNames, eImgVer::Unknown, true};
+        IMGArchive::ImportEntries(&info);
     }
 }
 
