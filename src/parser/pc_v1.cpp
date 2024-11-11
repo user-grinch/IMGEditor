@@ -20,7 +20,7 @@ void ParserPCv1::Open(IMGArchive* pArc)
                 stream.read(reinterpret_cast<char*>(&entry.Offset), sizeof(entry.Offset));
                 stream.read(reinterpret_cast<char*>(&entry.Sector), sizeof(entry.Sector));
 
-                std::vector<char> buffer(24);
+                std::vector<char> buffer(32);
                 stream.read(buffer.data(), buffer.size());
                 Utils::ConvertUtf8ToWide(buffer.data(), entry.FileName, buffer.size());
 
@@ -122,7 +122,7 @@ void ParserPCv1::Save(ArchiveInfo* pInfo)
         std::ofstream fImg(tempPath, std::ios::binary);
         std::ifstream fIn(pInfo->pArc->Path, std::ios::binary);
 
-        if (!fImg.is_open() || !fIn.is_open()) {
+        if (!fImg.is_open()) {
             throw std::runtime_error("Archive open failed");
         }
 

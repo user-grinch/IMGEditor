@@ -541,7 +541,7 @@ void Editor::Run()
                     static_cast<long>(Ui::eTheme::SystemDefault)));
 
     Ui::Specification spec;
-    spec.Name = "Grinch_'s IMG Editor v" EDITOR_VERSION;
+    spec.Name = EDITOR_TITLE;
     spec.MenuBarFunc = ProcessMenuBar;
 
     HMONITOR monitor = MonitorFromWindow(NULL, MONITOR_DEFAULTTONEAREST);

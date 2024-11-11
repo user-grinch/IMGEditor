@@ -53,7 +53,7 @@ void ParserPCv2::Save(ArchiveInfo* pInfo)
         std::ofstream fImg(tempPath, std::ios::binary);
         std::ifstream fIn(pInfo->pArc->Path, std::ios::binary);
 
-        if (!fImg.is_open() || !fIn.is_open()) {
+        if (!fImg.is_open()) {
             throw std::runtime_error("Archive open failed");
         }
 

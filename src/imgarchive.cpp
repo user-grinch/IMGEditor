@@ -167,7 +167,7 @@ void IMGArchive::ImportEntries(ArchiveInfo *pInfo)
     {
         pInfo->pArc->ImportEntry(list[i], pInfo->removeExisting);
     }
-    pInfo->pArc->AddLogMessage(L"Imported entries");
+    pInfo->pArc->AddLogMessage(std::format(L"Imported {} entries", list.size()));
     pInfo->pArc->bUpdateSearch = true;
 }
 

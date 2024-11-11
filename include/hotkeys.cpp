@@ -11,7 +11,20 @@ Hotkey::Hotkey(ImGuiKey key1, ImGuiKey key2) {
     }
 }
 
+bool IsAppFocused() {
+    HWND hwnd = GetForegroundWindow();
+    if (hwnd == NULL) return false;
+
+    DWORD foregroundProcessID;
+    GetWindowThreadProcessId(hwnd, &foregroundProcessID);
+    return foregroundProcessID == GetCurrentProcessId();
+}
+
 bool Hotkey::Pressed(bool noDelay) {
+    if (!IsAppFocused()) {
+        return false;
+    }
+    
     if (ImGui::GetTime() - lastUpdate < 0.5) return false;
 
     bool key0Pressed = GetAsyncKeyState(codes[0]) & 0x8000;
