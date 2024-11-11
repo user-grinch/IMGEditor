@@ -4,8 +4,7 @@
 
 void ParserPCv2::Open(IMGArchive* pArc)
 {
-    std::wstring imgPath = pArc->Path;
-    if (std::filesystem::exists(imgPath))
+    if (std::filesystem::exists(pArc->Path))
     {
         pArc->FileName = std::filesystem::path(pArc->Path).filename().stem().wstring();
         std::ifstream stream(pArc->Path, std::ios::binary);
@@ -13,7 +12,7 @@ void ParserPCv2::Open(IMGArchive* pArc)
         {
             stream.seekg(4, std::ios::beg);
             size_t total = 0;
-            stream.read(reinterpret_cast<char*>(&total), sizeof(total));
+            stream.read(reinterpret_cast<char*>(&total), 4);
             pArc->EntryList.reserve(total);
 
             for (size_t i = 0; i < total; ++i)
@@ -45,7 +44,7 @@ void ParserPCv2::Open(IMGArchive* pArc)
 
 void ParserPCv2::Save(ArchiveInfo* pInfo)
 {
-    eImgVer ver = pInfo->pArc->ImageVersion;
+    eImgVer ver = pInfo->pArc->GetVersion();
     eImgVer outVer = pInfo->outVer;
     pInfo->pArc->ProgressBar.bInUse = true;
 
@@ -125,7 +124,7 @@ void ParserPCv2::Save(ArchiveInfo* pInfo)
         pInfo->pArc->FileName = std::filesystem::path(pInfo->path).filename().stem().wstring();
         pInfo->pArc->ProgressBar.bInUse = false;
         if (outVer != eImgVer::Unknown) {
-            pInfo->pArc->ImageVersion = outVer;
+            pInfo->pArc->SetVersion(outVer);
         }
     } catch (const std::exception& e) {
         pInfo->pArc->ProgressBar.bInUse = false;
@@ -135,4 +134,24 @@ void ParserPCv2::Save(ArchiveInfo* pInfo)
     }
 
     delete pInfo;
+}
+
+std::string ParserPCv2::GetVersionText() {
+    return "PC v2";
+}
+
+bool ParserPCv2::IsValid(const std::wstring& path) {
+    std::ifstream file(path, std::ios::binary);
+    if (file)
+    {
+        char ver[4];
+        file.read(ver, sizeof(ver));
+        if (ver[0] == 'V' && ver[1] == 'E' && ver[2] == 'R' && ver[3] == '2')
+        {
+            file.close();
+            return true;
+        }
+        file.close();
+    }
+    return false;
 }

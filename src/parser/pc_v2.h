@@ -18,6 +18,8 @@ public:
         return &parser;
     }
 
+    std::string GetVersionText();
     void Open(IMGArchive *pMgr);
+    bool IsValid(const std::wstring& path);
     void Save(ArchiveInfo *pInfo);
 };

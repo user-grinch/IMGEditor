@@ -2,16 +2,16 @@
 #include "pc_v1.h"
 #include "../utils.h"
 
-void ParserPCv1::Open(IMGArchive* pArc)[[[[[]]]]]
+void ParserPCv1::Open(IMGArchive* pArc)
 {
     std::wstring dirPath = std::filesystem::path(pArc->Path).replace_extension(L".dir").wstring();
     if (std::filesystem::exists(dirPath))
     {
         pArc->FileName = std::filesystem::path(pArc->Path).filename().stem().wstring();
-        std::ifstream stream(pArc->Path, std::ios::binary);
+        std::ifstream stream(dirPath, std::ios::binary);
         if (stream)
         {
-            const auto total = GetFileSz(pArc->Path) / STRUCT_SZ;
+            const size_t total = std::filesystem::file_size(dirPath) / STRUCT_SZ;
             pArc->EntryList.reserve(total);
 
             for (size_t i = 0; i < total; ++i)
@@ -45,11 +45,11 @@ void ParserPCv1::Export(IMGArchive* pMgr, EntryInfo* pEntry, const std::wstring&
 {
     // Find an available file name
     std::filesystem::path path = filePath;
-    size_t i = 1;
+    size_t i = 2;
     while (std::filesystem::exists(path))
     {
         path = filePath;
-        path.replace_filename(std::format(L"{}({}){}", path.stem().wstring(), i++, path.extension().wstring()));
+        path.replace_filename(std::format(L"{} ({}){}", path.stem().wstring(), i++, path.extension().wstring()));
     }
 
     std::ifstream imgStream(pMgr->Path, std::ios::binary);
@@ -113,7 +113,7 @@ void ParserPCv1::Import(IMGArchive *pArc, const std::wstring &path, bool replace
 
 void ParserPCv1::Save(ArchiveInfo* pInfo)
 {
-    eImgVer ver = pInfo->pArc->ImageVersion;
+    eImgVer ver = pInfo->pArc->GetVersion();
     eImgVer outVer = pInfo->outVer;
     pInfo->pArc->ProgressBar.bInUse = true;
 
@@ -184,23 +184,29 @@ void ParserPCv1::Save(ArchiveInfo* pInfo)
 
         if (fDir.is_open()) {
             fDir.close();
-            std::filesystem::remove(pInfo->path);
-            std::filesystem::rename(tempDirPath, pInfo->path);
         }
 
         if (fImg.is_open()) {
             fImg.close();
-            if (pInfo->removeExisting) {
-                std::filesystem::remove(pInfo->pArc->Path);
-            }
-            std::filesystem::rename(tempPath, pInfo->path);
         }
+
+        if (fIn.is_open()) {
+            fIn.close();
+        }
+
+        std::filesystem::remove(pInfo->path);
+        std::filesystem::rename(tempDirPath, dirPath);
+        if (pInfo->removeExisting) 
+        {
+            std::filesystem::remove(pInfo->pArc->Path);
+        }
+        std::filesystem::rename(tempPath, pInfo->path);
 
         pInfo->pArc->Path = pInfo->path;
         pInfo->pArc->FileName = std::filesystem::path(pInfo->path).filename().stem().wstring();
         pInfo->pArc->ProgressBar.bInUse = false;
         if (outVer != eImgVer::Unknown) {
-            pInfo->pArc->ImageVersion = outVer;
+            pInfo->pArc->SetVersion(outVer);
         }
     } catch (const std::exception& e) {
         pInfo->pArc->ProgressBar.bInUse = false;
@@ -215,4 +221,15 @@ void ParserPCv1::Save(ArchiveInfo* pInfo)
 size_t ParserPCv1::GetFileSz(const std::wstring& path) {
     size_t sz = std::filesystem::file_size(path);
     return max(SECTOR_SZ, sz + (SECTOR_SZ - sz % SECTOR_SZ) % SECTOR_SZ);
+}
+
+std::string ParserPCv1::GetVersionText() {
+    return "PC v1";
+}
+
+bool ParserPCv1::IsValid(const std::wstring& path) {
+    std::filesystem::path imgPath = std::filesystem::path(path);
+    std::wstring dirPath = imgPath.replace_extension(L".dir").wstring();
+
+    return std::filesystem::exists(imgPath) && std::filesystem::exists(dirPath);
 }

@@ -52,6 +52,9 @@ struct ArchiveInfo
 */
 class IMGArchive
 {
+private:
+    eImgVer ImageVersion = eImgVer::One;
+
 public:
     std::wstring Path;
     std::wstring FileName;
@@ -59,7 +62,6 @@ public:
     std::vector<EntryInfo*> SelectedList;
     std::vector<std::wstring> LogList;
     ProgressInfo ProgressBar;
-    eImgVer ImageVersion = eImgVer::Two;
     IParser *Parser = nullptr;
     
     bool bOpen = true;
@@ -83,8 +85,17 @@ public:
     // Get file type
     static std::wstring GetFileType(const wchar_t* name);
 
+    // Returns the format text
+    std::string GetFormatText();
+
     // Returns archive version 
     static eImgVer GetVersion(const std::wstring &archivePath);
+
+    // Sets the version of the archive
+    eImgVer GetVersion();
+
+    // Sets the version of the archive
+    void SetVersion(eImgVer ver);
 
     // Import entity
     void ImportEntry(const std::wstring& path, bool replace = false);

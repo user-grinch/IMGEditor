@@ -11,11 +11,13 @@ public:
     // Exports an entity form the archive
     virtual void Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::wstring& filePath, bool logMsg = true) = 0;
 
+    virtual std::string GetVersionText() = 0;
+
     // Imports an entity to the archive
     virtual void Import(IMGArchive *pArc, const std::wstring &path, bool replace) = 0;
     
     // Returns true if a valid archive format
-    virtual bool IsValid() = 0;
+    virtual bool IsValid(const std::wstring& path) = 0;
 
     // Rebuilds the archive & saves changes
     virtual void Save(ArchiveInfo *pInfo) = 0;

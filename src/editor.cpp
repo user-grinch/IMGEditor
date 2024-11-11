@@ -445,18 +445,7 @@ void Editor::ProcessWindow()
                 }
 
                 ImGui::NewLine();
-                switch (pSelectedArchive->ImageVersion)
-                {
-                case eImgVer::One:
-                    ImGui::Text("IMG format: v1");
-                    break;
-                case eImgVer::Two:
-                    ImGui::Text("IMG format: v2");
-                    break;
-                default:
-                    ImGui::Text("IMG format: Unknown");
-                    break;
-                }
+                ImGui::Text("IMG Format: %s", pSelectedArchive->GetFormatText().c_str());
                 ImGui::Text("Total Entries: %d", pSelectedArchive->EntryList.size());
                 ImGui::Spacing();
                 
@@ -661,7 +650,7 @@ void Editor::SaveArchive()
     {
         std::filesystem::path fsPath(pSelectedArchive->Path);
         if (!pSelectedArchive->Path.empty() && fsPath.is_absolute() && std::filesystem::exists(fsPath)) {
-            ArchiveInfo* info = new ArchiveInfo{pSelectedArchive, pSelectedArchive->Path, pSelectedArchive->ImageVersion};
+            ArchiveInfo* info = new ArchiveInfo{pSelectedArchive, pSelectedArchive->Path, pSelectedArchive->GetVersion()};
             CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::Save, info, NULL, NULL);
             pSelectedArchive->AddLogMessage(L"Archive saved");
         } else {
@@ -677,6 +666,7 @@ void Editor::SaveArchiveAs()
         std::wstring path = pSelectedArchive->FileName + L".img";
         eImgVer ver = static_cast<eImgVer>(WinDialogs::SaveArchive(path) - 1);
         ArchiveInfo* info = new ArchiveInfo{pSelectedArchive, path, ver, false};
+        pSelectedArchive->SetVersion(ver);
         CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)&IMGArchive::Save, info, NULL, NULL);
         pSelectedArchive->AddLogMessage(L"Archive saved");
     }

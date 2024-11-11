@@ -24,7 +24,9 @@ public:
     void Open(IMGArchive *pMgr);
     void Export(IMGArchive *pMgr, EntryInfo *pEntry, const std::wstring& filePath, bool logMsg = true);
     void Import(IMGArchive *pArc, const std::wstring &path, bool replace);
-    bool IsValid() {return true;};
+    bool IsValid(const std::wstring& path);
+    std::string GetVersionText();
+
     void Save(ArchiveInfo *pInfo);
 
     size_t GetFileSz(const std::wstring& path);

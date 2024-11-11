@@ -4,6 +4,7 @@
 #include "editor.h"
 #include "parser/pc_v1.h"
 #include "parser/pc_v2.h"
+#include "parser/unknown.h"
 
 IMGArchive::IMGArchive(std::wstring Path, bool CreateNew)
 {
@@ -17,19 +18,7 @@ IMGArchive::IMGArchive(std::wstring Path, bool CreateNew)
     else
     {
         this->Path = Path;
-        this->ImageVersion = GetVersion(Path);
-        switch(this->ImageVersion)
-        {
-        case eImgVer::One:
-            Parser = ParserPCv1::Get();
-            break;
-        case eImgVer::Two:
-            Parser = ParserPCv2::Get();
-            break;
-        default: 
-            Parser = nullptr;
-            break;
-        }
+        SetVersion(GetVersion(Path));
     }
 
     if (Parser)
@@ -187,35 +176,43 @@ void IMGArchive::AddLogMessage(std::wstring &&message)
     LogList.push_back(std::move(message));
 }
 
+eImgVer IMGArchive::GetVersion() {
+    return ImageVersion;
+}
+
+void IMGArchive::SetVersion(eImgVer ver) {
+    this->ImageVersion = ver;
+
+    switch(this->ImageVersion)
+    {
+    case eImgVer::One:
+        Parser = ParserPCv1::Get();
+        break;
+    case eImgVer::Two:
+        Parser = ParserPCv2::Get();
+        break;
+    default: 
+        Parser = UnknownFMT::Get();
+        break;
+    }
+}
+
+std::string IMGArchive::GetFormatText() 
+{
+    return reinterpret_cast<ParserPCv1*>(Parser)->GetVersionText();
+}
+
 eImgVer IMGArchive::GetVersion(const std::wstring &Path)
 {
-    eImgVer imgVer = eImgVer::Unknown;
-
-    // It's easier to detect v2, so let's do it first
-    FILE *fp = _wfopen(Path.c_str(), L"rb");
-    if (fp)
-    {
-        char ver[4];
-        fread(ver, sizeof(ver), 1, fp);
-        if (ver[0] == 'V' && ver[1] == 'E' && ver[2] == 'R' && ver[3] == '2')
-        {
-            imgVer = eImgVer::Two;
-        }
-        fclose(fp);
+    if (ParserPCv1::Get()->IsValid(Path)) {
+        return eImgVer::One;
     }
 
-    //  How to actually detect v1?
-    std::filesystem::path fsPath = std::filesystem::path(Path);
-    std::wstring dirPath = Path;
-    dirPath.replace(dirPath.end()-3, dirPath.end(), L"dir");
-
-    // if both .dir & .img exists with same name it's v1 YAY!
-    if (std::filesystem::exists(fsPath) && std::filesystem::exists(dirPath))
-    {
-        imgVer = eImgVer::One;
+    if (ParserPCv2::Get()->IsValid(Path)) {
+        return eImgVer::Two;
     }
 
-    return imgVer;
+    return eImgVer::Unknown;
 }
 
 void IMGArchive::Save(ArchiveInfo *pInfo)
