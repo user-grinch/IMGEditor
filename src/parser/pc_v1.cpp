@@ -20,7 +20,7 @@ void ParserPCv1::Open(IMGArchive* pArc)
                 stream.read(reinterpret_cast<char*>(&entry.Offset), sizeof(entry.Offset));
                 stream.read(reinterpret_cast<char*>(&entry.Sector), sizeof(entry.Sector));
 
-                std::vector<char> buffer(32);
+                std::vector<char> buffer(24);
                 stream.read(buffer.data(), buffer.size());
                 Utils::ConvertUtf8ToWide(buffer.data(), entry.FileName, buffer.size());
 
