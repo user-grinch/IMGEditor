@@ -21,7 +21,7 @@ jobs:
           cd ../build
           MsBuild IMGEditor.sln /property:Configuration=Release /p:Platform=Win64 /t:IMGEditorApp
       - name: Upload plugin
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: IMGEditor
           path: build\bin\IMGEditorApp.exe
