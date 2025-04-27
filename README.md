@@ -15,8 +15,8 @@ Download the latest versions from [releases](https://github.com/user-grinch/IMGE
 ### Images
 <details>
   <summary>Show Images</summary>
-    ![](./images/light.avif)
-    ![](./images/dark.avif)
+      <img src="./images/light.avif">
+      <img src="./images/dark.avif">
 </details>
 
 ### Credits
